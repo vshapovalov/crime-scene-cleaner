@@ -51,6 +51,10 @@ select {
     font: inherit;
 }
 
+button {
+    cursor: pointer;
+}
+
 #app {
     height: 100vh;
     text-align: center;
@@ -161,6 +165,160 @@ select {
 
 .footer a {
     color: #18181b;
+}
+
+.version-button {
+    border: 0;
+    background: transparent;
+    color: #18181b;
+    padding: 0;
+    font: inherit;
+}
+
+.version-button:hover {
+    text-decoration: underline;
+}
+
+.editor-shell {
+    position: relative;
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+    gap: 12px;
+    height: 100vh;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top left, rgb(239 68 68 / 12%), transparent 34%),
+        linear-gradient(180deg, #fafafa 0%, #f4f4f5 100%);
+    padding: 18px 20px;
+}
+
+.editor-toolbar,
+.progress-panel,
+.editor-table-panel {
+    border: 1px solid #e4e4e7;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: 0 10px 28px rgb(24 24 27 / 8%);
+}
+
+.editor-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px;
+}
+
+.editor-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.editor-summary {
+    display: flex;
+    min-width: 0;
+    justify-content: flex-end;
+    gap: 14px;
+    color: #52525b;
+    font-size: 13px;
+}
+
+.progress-panel {
+    padding: 12px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 8px;
+    color: #3f3f46;
+    font-size: 13px;
+}
+
+.progress-track {
+    height: 8px;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #e4e4e7;
+}
+
+.progress-value {
+    height: 100%;
+    border-radius: inherit;
+    background: hsl(var(--primary));
+    transition: width 180ms ease;
+}
+
+.editor-table-panel {
+    min-height: 0;
+    overflow: auto;
+}
+
+.translation-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    text-align: left;
+}
+
+.translation-table thead {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: #fafafa;
+}
+
+.translation-table th,
+.translation-table td {
+    border-bottom: 1px solid #e4e4e7;
+    padding: 8px;
+    vertical-align: top;
+}
+
+.translation-table th {
+    color: #52525b;
+    font-weight: 600;
+}
+
+.translation-table td:first-child {
+    width: 190px;
+    color: #52525b;
+}
+
+.translation-table td:nth-child(2) {
+    width: 160px;
+    color: #71717a;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    font-size: 12px;
+}
+
+.translation-table textarea {
+    display: block;
+    width: 100%;
+    min-height: 42px;
+    resize: vertical;
+    border: 1px solid #e4e4e7;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #18181b;
+    font: inherit;
+    line-height: 1.35;
+    padding: 7px 8px;
+}
+
+.translation-table textarea:focus {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 1px;
+}
+
+.empty-editor {
+    display: flex;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    color: #71717a;
+    font-size: 14px;
 }
 
 .toast {

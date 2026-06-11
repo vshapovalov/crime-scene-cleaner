@@ -6,6 +6,22 @@ export function ApplyTranslation(arg1) {
   return window['go']['main']['App']['ApplyTranslation'](arg1);
 }
 
+export function GetEditorToolingStatus() {
+  return window['go']['main']['App']['GetEditorToolingStatus']();
+}
+
 export function GetGameStatus() {
   return window['go']['main']['App']['GetGameStatus']();
+}
+
+export function InstallEditorTooling() {
+  return window['go']['main']['App']['InstallEditorTooling']();
+}
+
+export function LoadTranslationEditor() {
+  return window['go']['main']['App']['LoadTranslationEditor']();
+}
+
+export function SaveTranslationEditor(arg1) {
+  return window['go']['main']['App']['SaveTranslationEditor'](arg1);
 }

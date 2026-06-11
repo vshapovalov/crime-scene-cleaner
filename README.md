@@ -13,6 +13,20 @@ The app does not modify Wwise soundbanks or voice/audio files. It replaces only 
 
 The app creates a `.bak` backup of the selected original language bundle before copying the Ukrainian bundle.
 
+## Translation Editor
+
+The editor button is hidden by default. Click `v1.0.0` in the bottom-right corner to show `Редагувати переклад`.
+
+When the editor opens, the app checks for Python and UnityPy. If UnityPy is missing, the app asks for confirmation before installing it with pip. After tooling is ready, the app loads `ukrainian-localization.bundle` from next to the executable.
+
+If `ukrainian-localization.bundle` does not exist yet, the app copies the Russian game string-table bundle and uses that as the first editable translation bundle.
+
+The editor view contains:
+
+- `Назад` to return to the main screen.
+- `Зберегти` to pack edited rows back into `ukrainian-localization.bundle`.
+- A translation table with Unity table name, string ID, and editable text.
+
 ## Runtime Translation File
 
 Place the Ukrainian replacement bundle next to the built executable:

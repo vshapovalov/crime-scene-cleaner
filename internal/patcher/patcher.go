@@ -12,6 +12,7 @@ type TargetLanguage string
 const (
 	TargetEnglish TargetLanguage = "english"
 	TargetPolish  TargetLanguage = "polish"
+	TargetRussian TargetLanguage = "russian"
 )
 
 const RuntimeTranslationBundle = "ukrainian-localization.bundle"
@@ -29,6 +30,8 @@ func TargetBundlePath(gameDir string, target TargetLanguage) (string, error) {
 		fileName = "localization-string-tables-english(en)_assets_all.bundle"
 	case TargetPolish:
 		fileName = "localization-string-tables-polish(pl)_assets_all.bundle"
+	case TargetRussian:
+		fileName = "localization-string-tables-russian(ru)_assets_all.bundle"
 	default:
 		return "", fmt.Errorf("unsupported target language: %s", target)
 	}
