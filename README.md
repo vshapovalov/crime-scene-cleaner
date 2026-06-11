@@ -21,6 +21,12 @@ When the editor opens, the app checks for Python and UnityPy. If UnityPy is miss
 
 If `ukrainian-localization.bundle` does not exist yet, the app copies the Russian game string-table bundle and uses that as the first editable translation bundle.
 
+On save, the editor writes:
+
+- `ukrainian-localization.bundle` - editable Russian-structured working bundle.
+- `ukrainian-localization_en.bundle` - English-slot export with `*_en` tables and locale `en`.
+- `ukrainian-localization_pl.bundle` - Polish-slot export with `*_pl` tables and locale `pl`.
+
 The editor view contains:
 
 - `Назад` to return to the main screen.
@@ -34,9 +40,11 @@ Place the Ukrainian replacement bundle next to the built executable:
 ```text
 build/bin/crime-scene-cleaner.exe
 build/bin/ukrainian-localization.bundle
+build/bin/ukrainian-localization_en.bundle
+build/bin/ukrainian-localization_pl.bundle
 ```
 
-The replacement bundle is copied to one of these game files:
+The target-specific replacement bundle is copied to one of these game files:
 
 ```text
 CrimeCleaner_Data/StreamingAssets/aa/StandaloneWindows64/localization-string-tables-english(en)_assets_all.bundle

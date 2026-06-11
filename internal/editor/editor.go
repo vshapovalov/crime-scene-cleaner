@@ -43,6 +43,12 @@ type EditorData struct {
 	TempDir string           `json:"tempDir"`
 }
 
+const (
+	RuntimeEditableBundle = "ukrainian-localization.bundle"
+	RuntimeEnglishBundle  = "ukrainian-localization_en.bundle"
+	RuntimePolishBundle   = "ukrainian-localization_pl.bundle"
+)
+
 func DefaultPythonExecutable() string {
 	if path, err := exec.LookPath("python"); err == nil {
 		return path
@@ -135,7 +141,10 @@ func ImportBundle(ctx context.Context, runner CommandRunner, python string, bund
 			return fmt.Errorf("create editor backup: %w", err)
 		}
 	}
-	_, err = runner.Run(ctx, python, scriptPath, bundlePath, rowsPath)
+	baseDir := filepath.Dir(bundlePath)
+	englishPath := filepath.Join(baseDir, RuntimeEnglishBundle)
+	polishPath := filepath.Join(baseDir, RuntimePolishBundle)
+	_, err = runner.Run(ctx, python, scriptPath, bundlePath, rowsPath, englishPath, polishPath)
 	return err
 }
 

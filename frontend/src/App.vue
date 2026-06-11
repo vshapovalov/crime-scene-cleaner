@@ -167,7 +167,7 @@ async function saveEditorRows() {
   editorProgress.value = { stage: 'save', percent: 0, message: 'Готуємо збереження' }
   try {
     await SaveTranslationEditor(editorRows.value)
-    notice.value = 'Переклад збережено в ukrainian-localization.bundle'
+    notice.value = 'Переклад збережено та експортовано для English/Polish'
   } catch (err) {
     error.value = formatError(err)
   } finally {

@@ -59,7 +59,11 @@ func (a *App) ApplyTranslation(request ApplyRequest) (patcher.ApplyResult, error
 	if err != nil {
 		return patcher.ApplyResult{}, err
 	}
-	return patcher.Apply(info.Path, patcher.RuntimeBundlePath(executable), request.Target)
+	sourceBundle, err := patcher.RuntimeBundlePathForTarget(executable, request.Target)
+	if err != nil {
+		return patcher.ApplyResult{}, err
+	}
+	return patcher.Apply(info.Path, sourceBundle, request.Target)
 }
 
 func (a *App) GetEditorToolingStatus() editor.ToolingStatus {

@@ -26,6 +26,26 @@ func TestTargetBundlePathUsesSelectedLanguage(t *testing.T) {
 	}
 }
 
+func TestRuntimeBundlePathForTargetUsesLanguageSpecificExports(t *testing.T) {
+	executable := filepath.Join("C:", "Tools", "crime-scene-cleaner.exe")
+
+	english, err := RuntimeBundlePathForTarget(executable, TargetEnglish)
+	if err != nil {
+		t.Fatalf("RuntimeBundlePathForTarget English returned error: %v", err)
+	}
+	polish, err := RuntimeBundlePathForTarget(executable, TargetPolish)
+	if err != nil {
+		t.Fatalf("RuntimeBundlePathForTarget Polish returned error: %v", err)
+	}
+
+	if filepath.Base(english) != "ukrainian-localization_en.bundle" {
+		t.Fatalf("English runtime bundle = %q", english)
+	}
+	if filepath.Base(polish) != "ukrainian-localization_pl.bundle" {
+		t.Fatalf("Polish runtime bundle = %q", polish)
+	}
+}
+
 func TestApplyCreatesBackupAndCopiesTranslation(t *testing.T) {
 	root := t.TempDir()
 	gameDir := filepath.Join(root, "Crime Scene Cleaner")

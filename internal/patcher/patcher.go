@@ -79,6 +79,19 @@ func RuntimeBundlePath(executablePath string) string {
 	return filepath.Join(filepath.Dir(executablePath), RuntimeTranslationBundle)
 }
 
+func RuntimeBundlePathForTarget(executablePath string, target TargetLanguage) (string, error) {
+	fileName := ""
+	switch target {
+	case TargetEnglish:
+		fileName = "ukrainian-localization_en.bundle"
+	case TargetPolish:
+		fileName = "ukrainian-localization_pl.bundle"
+	default:
+		return "", fmt.Errorf("unsupported runtime target language: %s", target)
+	}
+	return filepath.Join(filepath.Dir(executablePath), fileName), nil
+}
+
 func requireFile(path string) error {
 	stat, err := os.Stat(path)
 	if err != nil {
