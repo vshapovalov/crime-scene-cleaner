@@ -176,6 +176,8 @@ async function saveEditorRows() {
 }
 
 function backToMain() {
+  notice.value = ''
+  error.value = ''
   view.value = 'main'
   editorRows.value = []
   editorProgress.value = { stage: '', percent: 0, message: '' }
