@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { ApplyTranslation, GetGameStatus } from '../wailsjs/go/main/App'
 import Button from './components/ui/button/Button.vue'
-import NativeSelect from './components/ui/select/NativeSelect.vue'
+import Select from './components/ui/select/Select.vue'
 import gameHeader from './assets/images/crime-scene-cleaner-header.jpg'
 
 const targets = [
@@ -111,12 +111,7 @@ onMounted(refreshStatus)
       <div class="left-controls" aria-hidden="true"></div>
 
       <div class="right-controls">
-        <label class="sr-only" for="target-language">Мова для заміни</label>
-        <NativeSelect id="target-language" v-model="selectedTarget">
-          <option v-for="target in targets" :key="target.value" :value="target.value">
-            {{ target.label }}
-          </option>
-        </NativeSelect>
+        <Select v-model="selectedTarget" :items="targets" />
         <Button variant="primary" type="button" :disabled="!canApply" @click="applyTranslation">
           {{ applying ? 'Застосування...' : 'Застосувати переклад' }}
         </Button>

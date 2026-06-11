@@ -15,7 +15,7 @@ const props = defineProps({
 })
 
 const buttonVariants = cva(
-  'inline-flex h-10 min-w-[210px] items-center justify-center rounded-md border border-zinc-200 bg-zinc-950 px-5 text-sm font-medium text-white shadow-sm outline-none transition-colors hover:bg-zinc-800 focus-visible:ring-2 focus-visible:ring-zinc-400 disabled:cursor-not-allowed disabled:opacity-50',
+  'inline-flex h-10 min-w-[210px] items-center justify-center rounded-md border border-zinc-950 bg-zinc-950 px-5 text-sm font-medium text-white shadow-sm outline-none transition-colors hover:bg-zinc-800 focus-visible:ring-2 focus-visible:ring-zinc-400 active:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50',
   {
     variants: {
       variant: {
