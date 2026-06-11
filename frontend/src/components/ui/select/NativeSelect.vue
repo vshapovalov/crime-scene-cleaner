@@ -18,7 +18,7 @@ const emit = defineEmits(['update:modelValue'])
 <template>
   <select
     :value="modelValue"
-    :class="cn('h-9 min-w-[176px] cursor-pointer border border-[#9a9a9a] bg-[#eeeeee] px-[18px] text-[13px] text-[#101010] outline-none', $props.class)"
+    :class="cn('h-10 min-w-[190px] cursor-pointer rounded-md border border-zinc-200 bg-white px-3 text-sm text-zinc-950 shadow-sm outline-none transition-colors focus-visible:ring-2 focus-visible:ring-zinc-400', $props.class)"
     @change="emit('update:modelValue', $event.target.value)"
   >
     <slot />

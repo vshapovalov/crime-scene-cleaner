@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { ApplyTranslation, GetGameStatus } from '../wailsjs/go/main/App'
 import Button from './components/ui/button/Button.vue'
 import NativeSelect from './components/ui/select/NativeSelect.vue'
+import gameHeader from './assets/images/crime-scene-cleaner-header.jpg'
 
 const targets = [
   { value: 'english', label: 'замість англійської' },
@@ -24,9 +25,17 @@ const notice = ref('')
 const error = ref('')
 const isWailsRuntime = () => Boolean(window?.go?.main?.App)
 
-const versionText = computed(() => {
-  const version = status.value?.game?.version
-  return version ? `версія гри: ${version}` : 'версія гри: не знайдено'
+const gameInfoText = computed(() => {
+  if (loading.value) return 'перевіряємо гру...'
+  if (!status.value?.game?.installed) return 'гра не знайдена'
+
+  const version = status.value.game.version || 'невідома'
+  const path = status.value.game.path || 'шлях не визначено'
+  return `версія гри: ${version} · ${path}`
+})
+
+const gameMissing = computed(() => {
+  return !loading.value && !status.value?.game?.installed
 })
 
 const canApply = computed(() => {
@@ -88,20 +97,14 @@ onMounted(refreshStatus)
 <template>
   <main class="app-shell">
     <section class="hero-panel">
-      <div class="game-logo">Crime Scene Cleaner</div>
-      <div class="subtitle">Українська локалізація</div>
+      <img class="game-image" :src="gameHeader" alt="Crime Scene Cleaner" />
     </section>
 
     <section class="agreement-panel">
-      <h1>угода з користувачем</h1>
       <p>
-        Патч замінює вибраний текстовий ресурс гри на український переклад.
-        Оригінальна озвучка та звукові банки не змінюються.
+        Автор патча не несе відповідальності за будь-яку шкоду, спричинену
+        використанням цього патча. Ви застосовуєте його на власний страх і ризик.
       </p>
-      <div class="game-status" :class="{ missing: !status.game.installed }">
-        <span>{{ status.game.message }}</span>
-        <small v-if="status.game.path">{{ status.game.path }}</small>
-      </div>
     </section>
 
     <section class="control-bar">
@@ -121,7 +124,7 @@ onMounted(refreshStatus)
     </section>
 
     <footer class="footer">
-      <span>{{ versionText }}</span>
+      <span class="game-info" :class="{ missing: gameMissing }">{{ gameInfoText }}</span>
       <span class="footer-meta">
         <a href="mailto:shapovalov.v@gmail.com">shapovalov.v@gmail.com</a>
         <span>v1.0.0</span>
