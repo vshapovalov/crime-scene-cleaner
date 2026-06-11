@@ -3,6 +3,10 @@ import { computed, onMounted, ref } from 'vue'
 import { ApplyTranslation, GetGameStatus } from '../wailsjs/go/main/App'
 import Button from './components/ui/button/Button.vue'
 import Select from './components/ui/select/Select.vue'
+import SelectContent from './components/ui/select/SelectContent.vue'
+import SelectItem from './components/ui/select/SelectItem.vue'
+import SelectTrigger from './components/ui/select/SelectTrigger.vue'
+import SelectValue from './components/ui/select/SelectValue.vue'
 import gameHeader from './assets/images/crime-scene-cleaner-header.jpg'
 
 const targets = [
@@ -111,8 +115,17 @@ onMounted(refreshStatus)
       <div class="left-controls" aria-hidden="true"></div>
 
       <div class="right-controls">
-        <Select v-model="selectedTarget" :items="targets" />
-        <Button variant="primary" type="button" :disabled="!canApply" @click="applyTranslation">
+        <Select v-model="selectedTarget">
+          <SelectTrigger>
+            <SelectValue placeholder="Оберіть мову" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="target in targets" :key="target.value" :value="target.value">
+              {{ target.label }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <Button type="button" :disabled="!canApply" @click="applyTranslation">
           {{ applying ? 'Застосування...' : 'Застосувати переклад' }}
         </Button>
       </div>

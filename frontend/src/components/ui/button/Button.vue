@@ -15,18 +15,24 @@ const props = defineProps({
 })
 
 const buttonVariants = cva(
-  'inline-flex h-10 min-w-[210px] items-center justify-center rounded-md border border-zinc-950 bg-zinc-950 px-5 text-sm font-medium text-white shadow-sm outline-none transition-colors hover:bg-zinc-800 focus-visible:ring-2 focus-visible:ring-zinc-400 active:bg-zinc-900 disabled:cursor-not-allowed disabled:opacity-50',
+  'inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       variant: {
-        default: '',
-        primary: 'min-w-[222px]',
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
       },
+      size: {
+        default: 'h-10 px-4 py-2',
+      },
+    },
+    defaultVariants: {
+      variant: 'default',
+      size: 'default',
     },
   },
 )
 
-const classes = computed(() => cn(buttonVariants({ variant: props.variant }), props.class))
+const classes = computed(() => cn(buttonVariants({ variant: props.variant, size: 'default' }), props.class))
 </script>
 
 <template>
