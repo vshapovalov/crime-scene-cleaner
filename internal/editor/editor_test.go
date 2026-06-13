@@ -255,6 +255,51 @@ func TestImportBundleUsesAssetsToolForEditableEnglishAndPolishBundles(t *testing
 	}
 }
 
+func TestBuildLocalizedAssetTableExportsSourceRowsAndImportsIntoTemplate(t *testing.T) {
+	root := t.TempDir()
+	toolPath := filepath.Join(root, "BundleTool.exe")
+	sourceRowsPath := filepath.Join(root, "localization-asset-tables-russian(ru)_assets_all.bundle")
+	templatePath := filepath.Join(root, "localization-asset-tables-english(en)_assets_all.bundle")
+	outputPath := filepath.Join(root, "fonts_en.bundle")
+	for _, path := range []string{toolPath, sourceRowsPath, templatePath} {
+		if err := os.WriteFile(path, []byte("file"), 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	runner := &fakeRunner{onRun: func(name string, args ...string) (string, error) {
+		switch {
+		case len(args) == 3 && args[0] == "export" && args[1] == sourceRowsPath:
+			return "", os.WriteFile(args[2], []byte(`[{"table":"Fonts_ru","id":"1","text":"guid"}]`), 0o644)
+		case len(args) == 6 && args[0] == "import" && args[1] == templatePath && args[3] != "" && args[4] == "en" && args[5] == "_en":
+			return "", os.WriteFile(args[3], []byte("packed-font-table"), 0o644)
+		default:
+			t.Fatalf("unexpected command: %s %v", name, args)
+		}
+		return "", nil
+	}}
+
+	if err := BuildLocalizedAssetTable(context.Background(), runner, toolPath, sourceRowsPath, templatePath, outputPath, "en", "_en"); err != nil {
+		t.Fatalf("BuildLocalizedAssetTable returned error: %v", err)
+	}
+	data, err := os.ReadFile(outputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "packed-font-table" {
+		t.Fatalf("output = %q", string(data))
+	}
+	allCalls := strings.Join(runner.calls, "\n")
+	for _, expected := range []string{
+		" export " + sourceRowsPath,
+		" import " + templatePath,
+		" en _en",
+	} {
+		if !strings.Contains(allCalls, expected) {
+			t.Fatalf("expected command calls to contain %q, got:\n%s", expected, allCalls)
+		}
+	}
+}
+
 func TestBundleToolExportsEnglishAndPolishBundlesWithCorrectSuffixes(t *testing.T) {
 	toolPath := filepath.Join("..", "..", "tools", "BundleTool", "bin", "Release", "net8.0", "BundleTool.exe")
 	if _, err := os.Stat(toolPath); err != nil {
@@ -296,6 +341,39 @@ func TestBundleToolExportsEnglishAndPolishBundlesWithCorrectSuffixes(t *testing.
 
 	assertBundleMetadata(t, toolPath, englishTemplate, englishPath, "_en", "en")
 	assertBundleMetadata(t, toolPath, polishTemplate, polishPath, "_pl", "pl")
+}
+
+func TestBundleToolBuildsEnglishAssetTableFromRussianRowsAndEnglishTemplate(t *testing.T) {
+	toolPath := filepath.Join("..", "..", "build", "bin", "BundleTool.exe")
+	if _, err := os.Stat(toolPath); err != nil {
+		t.Skip("BundleTool.exe has not been built")
+	}
+	russianAssetTable, err := patcher.TargetAssetTableBundlePath(`G:\SteamLibrary\steamapps\common\Crime Scene Cleaner`, patcher.TargetRussian)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(russianAssetTable); err != nil {
+		t.Skip("local Crime Scene Cleaner localization asset table is not available")
+	}
+	englishAssetTableTemplate, err := patcher.TargetAssetTableBundlePath(`G:\SteamLibrary\steamapps\common\Crime Scene Cleaner`, patcher.TargetEnglish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(englishAssetTableTemplate); err != nil {
+		t.Skip("local Crime Scene Cleaner English asset table is not available")
+	}
+
+	root := t.TempDir()
+	rowsPath := filepath.Join(root, "fonts-ru.json")
+	englishAssetTable := filepath.Join(root, "fonts_en.bundle")
+	if out, err := exec.Command(toolPath, "export", russianAssetTable, rowsPath).CombinedOutput(); err != nil {
+		t.Fatalf("export failed: %v\n%s", err, out)
+	}
+	if out, err := exec.Command(toolPath, "import", englishAssetTableTemplate, rowsPath, englishAssetTable, "en", "_en").CombinedOutput(); err != nil {
+		t.Fatalf("asset-table import failed: %v\n%s", err, out)
+	}
+
+	assertBundleMetadata(t, toolPath, englishAssetTableTemplate, englishAssetTable, "_en", "en")
 }
 
 func targetBundlePathForTest(target patcher.TargetLanguage) (string, error) {

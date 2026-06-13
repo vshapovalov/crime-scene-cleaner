@@ -189,6 +189,40 @@ func ImportBundle(ctx context.Context, runner CommandRunner, bundleToolPath stri
 	return importBundleTo(ctx, runner, bundleToolPath, polishTemplatePath, rowsPath, polishPath, "pl", "_pl")
 }
 
+func BuildLocalizedAssetTable(ctx context.Context, runner CommandRunner, bundleToolPath string, sourceRowsBundlePath string, templatePath string, outputPath string, locale string, suffix string) error {
+	if err := requireFile(bundleToolPath); err != nil {
+		return fmt.Errorf("інструмент для бандлів відсутній: %w", err)
+	}
+	if err := requireFile(sourceRowsBundlePath); err != nil {
+		return fmt.Errorf("відсутня вихідна таблиця ассетів: %w", err)
+	}
+	if err := requireFile(templatePath); err != nil {
+		return fmt.Errorf("відсутній шаблон таблиці ассетів: %w", err)
+	}
+	tempDir, err := os.MkdirTemp("", "crime-scene-cleaner-fonts-*")
+	if err != nil {
+		return err
+	}
+	rowsPath := filepath.Join(tempDir, "font-assets.json")
+	if _, err := runner.Run(ctx, bundleToolPath, "export", sourceRowsBundlePath, rowsPath); err != nil {
+		return err
+	}
+	if err := requireFile(rowsPath); err != nil {
+		return fmt.Errorf("інструмент для бандлів не експортував таблицю ассетів: %w", err)
+	}
+	outputTempPath := filepath.Join(filepath.Dir(outputPath), "."+filepath.Base(outputPath)+".tmp")
+	if _, err := runner.Run(ctx, bundleToolPath, "import", templatePath, rowsPath, outputTempPath, locale, suffix); err != nil {
+		return err
+	}
+	if err := requireFile(outputTempPath); err != nil {
+		return fmt.Errorf("інструмент для бандлів не створив таблицю ассетів: %w", err)
+	}
+	if err := os.Remove(outputPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return os.Rename(outputTempPath, outputPath)
+}
+
 func EnsureEditorBundles(bundlePath string, dictionaryPath string, gameDir string) error {
 	needsEditable := false
 	if _, err := os.Stat(bundlePath); errors.Is(err, os.ErrNotExist) {

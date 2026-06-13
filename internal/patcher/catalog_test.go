@@ -68,6 +68,8 @@ func TestPatchAddressablesCatalogAdjustsLaterDataIndexes(t *testing.T) {
 const (
 	testEnglishInternalID = "{UnityEngine.AddressableAssets.Addressables.RuntimePath}\\StandaloneWindows64\\localization-string-tables-english(en)_assets_all.bundle"
 	testPolishInternalID  = "{UnityEngine.AddressableAssets.Addressables.RuntimePath}\\StandaloneWindows64\\localization-string-tables-polish(pl)_assets_all.bundle"
+	testEnglishAssetID    = "{UnityEngine.AddressableAssets.Addressables.RuntimePath}\\StandaloneWindows64\\localization-asset-tables-english(en)_assets_all.bundle"
+	testPolishAssetID     = "{UnityEngine.AddressableAssets.Addressables.RuntimePath}\\StandaloneWindows64\\localization-asset-tables-polish(pl)_assets_all.bundle"
 )
 
 type testBundleOptions struct {
@@ -102,17 +104,32 @@ func writeTestCatalog(t *testing.T, root string) (string, string) {
 		Hash: "polish-hash-000000000000000000000", CRC: 2222222222, BundleName: "polish-bundle",
 		BundleSize: 222, UseCRCForCachedBundles: true,
 	}
-	englishObject := encodeTestCatalogObject(t, english)
-	polishObject := encodeTestCatalogObject(t, polish)
-	extraData := append(englishObject, polishObject...)
+	englishAsset := testBundleOptions{
+		Hash: "english-asset-hash-00000000000000", CRC: 3333333333, BundleName: "english-asset-bundle",
+		BundleSize: 333, UseCRCForCachedBundles: true,
+	}
+	polishAsset := testBundleOptions{
+		Hash: "polish-asset-hash-000000000000000", CRC: 4000000000, BundleName: "polish-asset-bundle",
+		BundleSize: 444, UseCRCForCachedBundles: true,
+	}
+	objects := [][]byte{
+		encodeTestCatalogObject(t, english),
+		encodeTestCatalogObject(t, polish),
+		encodeTestCatalogObject(t, englishAsset),
+		encodeTestCatalogObject(t, polishAsset),
+	}
+	extraData := bytes.Join(objects, nil)
 
 	var entries bytes.Buffer
-	writeInt32(t, &entries, 2)
-	writeEntry(t, &entries, 0, 0, 0)
-	writeEntry(t, &entries, 1, 0, int32(len(englishObject)))
+	writeInt32(t, &entries, 4)
+	dataIndex := int32(0)
+	for i, object := range objects {
+		writeEntry(t, &entries, int32(i), 0, dataIndex)
+		dataIndex += int32(len(object))
+	}
 
 	catalog := map[string]any{
-		"m_InternalIds":        []string{testEnglishInternalID, testPolishInternalID},
+		"m_InternalIds":        []string{testEnglishInternalID, testPolishInternalID, testEnglishAssetID, testPolishAssetID},
 		"m_EntryDataString":    base64.StdEncoding.EncodeToString(entries.Bytes()),
 		"m_ExtraDataString":    base64.StdEncoding.EncodeToString(extraData),
 		"m_ProviderIds":        []string{},

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"os"
+	"path/filepath"
 
 	"crime-scene-cleaner/internal/editor"
 	"crime-scene-cleaner/internal/patcher"
@@ -63,7 +64,70 @@ func (a *App) ApplyTranslation(request ApplyRequest) (patcher.ApplyResult, error
 	if err != nil {
 		return patcher.ApplyResult{}, err
 	}
-	return patcher.Apply(info.Path, sourceBundle, request.Target)
+	if err := prepareLocalizedFontAssetTable(context.Background(), executable, info.Path, request.Target); err != nil {
+		return patcher.ApplyResult{}, err
+	}
+	result, err := patcher.Apply(info.Path, sourceBundle, request.Target)
+	if err != nil {
+		return patcher.ApplyResult{}, err
+	}
+	fontAssetTable, err := runtimeFontAssetTablePath(executable, request.Target)
+	if err != nil {
+		return patcher.ApplyResult{}, err
+	}
+	if _, err := patcher.ApplyAssetTable(info.Path, fontAssetTable, request.Target); err != nil {
+		return patcher.ApplyResult{}, err
+	}
+	return result, nil
+}
+
+func prepareLocalizedFontAssetTable(ctx context.Context, executablePath string, gameDir string, target patcher.TargetLanguage) error {
+	locale, suffix, err := targetLocaleAndSuffix(target)
+	if err != nil {
+		return err
+	}
+	bundleToolPath := editor.RuntimeBundleToolPath(executablePath)
+	status := editor.CheckTooling(bundleToolPath)
+	if !status.Ready {
+		return os.ErrNotExist
+	}
+	sourceAssetTable, err := patcher.TargetAssetTableBundlePath(gameDir, patcher.TargetRussian)
+	if err != nil {
+		return err
+	}
+	templateAssetTable, err := patcher.TargetAssetTableBundlePath(gameDir, target)
+	if err != nil {
+		return err
+	}
+	outputPath, err := runtimeFontAssetTablePath(executablePath, target)
+	if err != nil {
+		return err
+	}
+	return editor.BuildLocalizedAssetTable(ctx, editor.ExecRunner{}, bundleToolPath, sourceAssetTable, templateAssetTable, outputPath, locale, suffix)
+}
+
+func runtimeFontAssetTablePath(executablePath string, target patcher.TargetLanguage) (string, error) {
+	fileName := ""
+	switch target {
+	case patcher.TargetEnglish:
+		fileName = "ukrainian-fonts_en.bundle"
+	case patcher.TargetPolish:
+		fileName = "ukrainian-fonts_pl.bundle"
+	default:
+		return "", os.ErrInvalid
+	}
+	return filepath.Join(filepath.Dir(executablePath), fileName), nil
+}
+
+func targetLocaleAndSuffix(target patcher.TargetLanguage) (string, string, error) {
+	switch target {
+	case patcher.TargetEnglish:
+		return "en", "_en", nil
+	case patcher.TargetPolish:
+		return "pl", "_pl", nil
+	default:
+		return "", "", os.ErrInvalid
+	}
 }
 
 func (a *App) GetEditorToolingStatus() editor.ToolingStatus {

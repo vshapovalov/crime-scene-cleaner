@@ -26,6 +26,26 @@ func TestTargetBundlePathUsesSelectedLanguage(t *testing.T) {
 	}
 }
 
+func TestTargetAssetTableBundlePathUsesSelectedLanguage(t *testing.T) {
+	gameDir := filepath.Join("G:", "SteamLibrary", "steamapps", "common", "Crime Scene Cleaner")
+
+	english, err := TargetAssetTableBundlePath(gameDir, TargetEnglish)
+	if err != nil {
+		t.Fatalf("TargetAssetTableBundlePath English returned error: %v", err)
+	}
+	polish, err := TargetAssetTableBundlePath(gameDir, TargetPolish)
+	if err != nil {
+		t.Fatalf("TargetAssetTableBundlePath Polish returned error: %v", err)
+	}
+
+	if filepath.Base(english) != "localization-asset-tables-english(en)_assets_all.bundle" {
+		t.Fatalf("English asset table target = %q", english)
+	}
+	if filepath.Base(polish) != "localization-asset-tables-polish(pl)_assets_all.bundle" {
+		t.Fatalf("Polish asset table target = %q", polish)
+	}
+}
+
 func TestRuntimeBundlePathForTargetUsesLanguageSpecificExports(t *testing.T) {
 	executable := filepath.Join("C:", "Tools", "crime-scene-cleaner.exe")
 
@@ -187,5 +207,46 @@ func TestApplyDoesNotOverwriteExistingBackup(t *testing.T) {
 	}
 	if string(catalogBackup) != "first-catalog" {
 		t.Fatalf("catalog backup content = %q", string(catalogBackup))
+	}
+}
+
+func TestApplyAssetTableCreatesBackupCopiesBundleAndPatchesCatalog(t *testing.T) {
+	root := t.TempDir()
+	gameDir, catalogPath := writeTestCatalog(t, root)
+	targetDir := filepath.Join(gameDir, "CrimeCleaner_Data", "StreamingAssets", "aa", "StandaloneWindows64")
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(targetDir, "localization-asset-tables-english(en)_assets_all.bundle")
+	if err := os.WriteFile(target, []byte("original asset table"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	source := filepath.Join(root, "fonts_en.bundle")
+	if err := os.WriteFile(source, []byte("patched asset table"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	result, err := ApplyAssetTable(gameDir, source, TargetEnglish)
+
+	if err != nil {
+		t.Fatalf("ApplyAssetTable returned error: %v", err)
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "patched asset table" {
+		t.Fatalf("target content = %q", string(got))
+	}
+	if result.TargetPath != target {
+		t.Fatalf("TargetPath = %q", result.TargetPath)
+	}
+	englishAsset := readCatalogOptions(t, catalogPath, testEnglishAssetID)
+	if englishAsset.CRC != 0 || englishAsset.UseCRCForCachedBundles || englishAsset.BundleSize != 19 {
+		t.Fatalf("English asset catalog entry was not patched: %+v", englishAsset)
+	}
+	englishStrings := readCatalogOptions(t, catalogPath, testEnglishInternalID)
+	if englishStrings.CRC != 1111111111 || !englishStrings.UseCRCForCachedBundles {
+		t.Fatalf("English string catalog entry was changed: %+v", englishStrings)
 	}
 }

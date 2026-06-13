@@ -45,6 +45,10 @@ func PatchAddressablesCatalog(gameDir string, target TargetLanguage, sourceBundl
 	if err != nil {
 		return err
 	}
+	return PatchAddressablesCatalogForBundle(gameDir, targetPath, sourceBundle)
+}
+
+func PatchAddressablesCatalogForBundle(gameDir string, targetPath string, sourceBundle string) error {
 	catalogPath := CatalogPath(gameDir)
 	sourceStat, err := os.Stat(sourceBundle)
 	if err != nil {

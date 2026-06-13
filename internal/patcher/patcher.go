@@ -48,6 +48,29 @@ func TargetBundlePath(gameDir string, target TargetLanguage) (string, error) {
 	), nil
 }
 
+func TargetAssetTableBundlePath(gameDir string, target TargetLanguage) (string, error) {
+	fileName := ""
+	switch target {
+	case TargetEnglish:
+		fileName = "localization-asset-tables-english(en)_assets_all.bundle"
+	case TargetPolish:
+		fileName = "localization-asset-tables-polish(pl)_assets_all.bundle"
+	case TargetRussian:
+		fileName = "localization-asset-tables-russian(ru)_assets_all.bundle"
+	default:
+		return "", fmt.Errorf("непідтримувана мова для заміни: %s", target)
+	}
+
+	return filepath.Join(
+		gameDir,
+		"CrimeCleaner_Data",
+		"StreamingAssets",
+		"aa",
+		"StandaloneWindows64",
+		fileName,
+	), nil
+}
+
 func TargetBundleTemplatePath(gameDir string, target TargetLanguage) (string, error) {
 	targetPath, err := TargetBundlePath(gameDir, target)
 	if err != nil {
@@ -65,6 +88,35 @@ func Apply(gameDir string, sourceBundle string, target TargetLanguage) (ApplyRes
 	if err != nil {
 		return ApplyResult{}, err
 	}
+	return applyBundleAndCatalog(gameDir, sourceBundle, targetPath)
+}
+
+func ApplyAssetTable(gameDir string, sourceBundle string, target TargetLanguage) (ApplyResult, error) {
+	targetPath, err := TargetAssetTableBundlePath(gameDir, target)
+	if err != nil {
+		return ApplyResult{}, err
+	}
+	return applyBundleAndCatalog(gameDir, sourceBundle, targetPath)
+}
+
+func RuntimeBundlePath(executablePath string) string {
+	return filepath.Join(filepath.Dir(executablePath), RuntimeTranslationBundle)
+}
+
+func RuntimeBundlePathForTarget(executablePath string, target TargetLanguage) (string, error) {
+	fileName := ""
+	switch target {
+	case TargetEnglish:
+		fileName = "ukrainian-localization_en.bundle"
+	case TargetPolish:
+		fileName = "ukrainian-localization_pl.bundle"
+	default:
+		return "", fmt.Errorf("непідтримувана мова перекладу під час виконання: %s", target)
+	}
+	return filepath.Join(filepath.Dir(executablePath), fileName), nil
+}
+
+func applyBundleAndCatalog(gameDir string, sourceBundle string, targetPath string) (ApplyResult, error) {
 	if err := requireFile(sourceBundle); err != nil {
 		return ApplyResult{}, fmt.Errorf("бандл перекладу відсутній: %w", err)
 	}
@@ -91,7 +143,7 @@ func Apply(gameDir string, sourceBundle string, target TargetLanguage) (ApplyRes
 	if err := copyFile(sourceBundle, targetPath); err != nil {
 		return ApplyResult{}, fmt.Errorf("встановлення перекладу: %w", err)
 	}
-	if err := PatchAddressablesCatalog(gameDir, target, sourceBundle); err != nil {
+	if err := PatchAddressablesCatalogForBundle(gameDir, targetPath, sourceBundle); err != nil {
 		_ = copyFile(backupPath, targetPath)
 		_ = copyFile(catalogBackupPath, catalogPath)
 		return ApplyResult{}, fmt.Errorf("оновлення catalog.json: %w", err)
@@ -104,23 +156,6 @@ func Apply(gameDir string, sourceBundle string, target TargetLanguage) (ApplyRes
 		CatalogBackupPath: catalogBackupPath,
 		Message:           "Переклад застосовано",
 	}, nil
-}
-
-func RuntimeBundlePath(executablePath string) string {
-	return filepath.Join(filepath.Dir(executablePath), RuntimeTranslationBundle)
-}
-
-func RuntimeBundlePathForTarget(executablePath string, target TargetLanguage) (string, error) {
-	fileName := ""
-	switch target {
-	case TargetEnglish:
-		fileName = "ukrainian-localization_en.bundle"
-	case TargetPolish:
-		fileName = "ukrainian-localization_pl.bundle"
-	default:
-		return "", fmt.Errorf("непідтримувана мова перекладу під час виконання: %s", target)
-	}
-	return filepath.Join(filepath.Dir(executablePath), fileName), nil
 }
 
 func requireFile(path string) error {
