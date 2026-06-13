@@ -46,6 +46,18 @@ func TargetBundlePath(gameDir string, target TargetLanguage) (string, error) {
 	), nil
 }
 
+func TargetBundleTemplatePath(gameDir string, target TargetLanguage) (string, error) {
+	targetPath, err := TargetBundlePath(gameDir, target)
+	if err != nil {
+		return "", err
+	}
+	backupPath := targetPath + ".bak"
+	if err := requireFile(backupPath); err == nil {
+		return backupPath, nil
+	}
+	return targetPath, nil
+}
+
 func Apply(gameDir string, sourceBundle string, target TargetLanguage) (ApplyResult, error) {
 	targetPath, err := TargetBundlePath(gameDir, target)
 	if err != nil {

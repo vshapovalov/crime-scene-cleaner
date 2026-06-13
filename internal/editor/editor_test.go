@@ -217,10 +217,11 @@ func TestExportBundleMergesOriginalTextFromDictionary(t *testing.T) {
 func TestImportBundleUsesAssetsToolForEditableEnglishAndPolishBundles(t *testing.T) {
 	root := t.TempDir()
 	bundlePath := filepath.Join(root, RuntimeEditableBundle)
+	workingTemplate := filepath.Join(root, RuntimeDictionaryBundle)
 	englishTemplate := filepath.Join(root, "english.bundle")
 	polishTemplate := filepath.Join(root, "polish.bundle")
 	toolPath := filepath.Join(root, "BundleTool.exe")
-	for _, path := range []string{bundlePath, englishTemplate, polishTemplate} {
+	for _, path := range []string{bundlePath, workingTemplate, englishTemplate, polishTemplate} {
 		if err := os.WriteFile(path, []byte("bundle"), 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -236,13 +237,13 @@ func TestImportBundleUsesAssetsToolForEditableEnglishAndPolishBundles(t *testing
 	}}
 	rows := []TranslationRow{{Table: "UIText_ru", ID: "1", Text: "Так", Original: "Да"}}
 
-	if err := ImportBundle(context.Background(), runner, toolPath, bundlePath, rows, englishTemplate, polishTemplate); err != nil {
+	if err := ImportBundle(context.Background(), runner, toolPath, bundlePath, rows, workingTemplate, englishTemplate, polishTemplate); err != nil {
 		t.Fatalf("ImportBundle returned error: %v", err)
 	}
 
 	allCalls := strings.Join(runner.calls, "\n")
 	for _, expected := range []string{
-		" import " + bundlePath,
+		" import " + workingTemplate,
 		" import " + englishTemplate,
 		" import " + polishTemplate,
 		" en _en",
@@ -293,8 +294,8 @@ func TestBundleToolExportsEnglishAndPolishBundlesWithCorrectSuffixes(t *testing.
 		t.Fatalf("polish import failed: %v\n%s", err, out)
 	}
 
-	assertBundleMetadata(t, toolPath, englishPath, "_en", "en")
-	assertBundleMetadata(t, toolPath, polishPath, "_pl", "pl")
+	assertBundleMetadata(t, toolPath, englishTemplate, englishPath, "_en", "en")
+	assertBundleMetadata(t, toolPath, polishTemplate, polishPath, "_pl", "pl")
 }
 
 func targetBundlePathForTest(target patcher.TargetLanguage) (string, error) {
@@ -307,7 +308,7 @@ func (e errTest) Error() string {
 	return string(e)
 }
 
-func assertBundleMetadata(t *testing.T, toolPath string, bundlePath string, suffix string, locale string) {
+func assertBundleMetadata(t *testing.T, toolPath string, templatePath string, bundlePath string, suffix string, locale string) {
 	t.Helper()
 	outputPath := filepath.Join(t.TempDir(), "inspect.json")
 	if out, err := exec.Command(toolPath, "inspect", bundlePath, outputPath).CombinedOutput(); err != nil {
@@ -317,17 +318,35 @@ func assertBundleMetadata(t *testing.T, toolPath string, bundlePath string, suff
 	if err != nil {
 		t.Fatal(err)
 	}
+	templateOutputPath := filepath.Join(t.TempDir(), "template-inspect.json")
+	if out, err := exec.Command(toolPath, "inspect", templatePath, templateOutputPath).CombinedOutput(); err != nil {
+		t.Fatalf("inspect template failed: %v\n%s", err, out)
+	}
+	templateData, err := os.ReadFile(templateOutputPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	var result struct {
 		Tables []struct {
 			Name   string `json:"name"`
 			Locale string `json:"locale"`
 		} `json:"tables"`
+		Directories []string `json:"directories"`
 	}
 	if err := json.Unmarshal(data, &result); err != nil {
 		t.Fatalf("decode inspection output: %v\n%s", err, data)
 	}
+	var templateResult struct {
+		Directories []string `json:"directories"`
+	}
+	if err := json.Unmarshal(templateData, &templateResult); err != nil {
+		t.Fatalf("decode template inspection output: %v\n%s", err, templateData)
+	}
 	if len(result.Tables) == 0 {
 		t.Fatalf("no string tables inspected in %s", bundlePath)
+	}
+	if strings.Join(result.Directories, "\n") != strings.Join(templateResult.Directories, "\n") {
+		t.Fatalf("bundle directories changed from template: got %v, want %v", result.Directories, templateResult.Directories)
 	}
 	var bad []string
 	for _, table := range result.Tables {

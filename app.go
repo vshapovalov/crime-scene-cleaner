@@ -127,6 +127,7 @@ func (a *App) SaveTranslationEditor(rows []editor.TranslationRow) error {
 		return err
 	}
 	bundlePath := patcher.RuntimeBundlePath(executable)
+	workingTemplatePath := editor.DictionaryBundlePath(bundlePath)
 	bundleToolPath := editor.RuntimeBundleToolPath(executable)
 
 	a.emitEditorProgress("save", 10, "Перевіряємо інструменти редактора")
@@ -144,16 +145,19 @@ func (a *App) SaveTranslationEditor(rows []editor.TranslationRow) error {
 		a.emitEditorProgress("save", 100, "Гру не знайдено")
 		return os.ErrNotExist
 	}
-	englishTemplate, err := patcher.TargetBundlePath(info.Path, patcher.TargetEnglish)
+	if _, err := os.Stat(workingTemplatePath); err != nil {
+		workingTemplatePath = bundlePath
+	}
+	englishTemplate, err := patcher.TargetBundleTemplatePath(info.Path, patcher.TargetEnglish)
 	if err != nil {
 		return err
 	}
-	polishTemplate, err := patcher.TargetBundlePath(info.Path, patcher.TargetPolish)
+	polishTemplate, err := patcher.TargetBundleTemplatePath(info.Path, patcher.TargetPolish)
 	if err != nil {
 		return err
 	}
 	a.emitEditorProgress("save", 35, "Запаковуємо переклад у бандл")
-	if err := editor.ImportBundle(context.Background(), editor.ExecRunner{}, bundleToolPath, bundlePath, rows, englishTemplate, polishTemplate); err != nil {
+	if err := editor.ImportBundle(context.Background(), editor.ExecRunner{}, bundleToolPath, bundlePath, rows, workingTemplatePath, englishTemplate, polishTemplate); err != nil {
 		a.emitEditorProgress("save", 100, "Не вдалося зберегти бандл перекладу")
 		return err
 	}

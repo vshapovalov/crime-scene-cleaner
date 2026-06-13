@@ -130,7 +130,6 @@ static int Import(string templatePath, string rowsPath, string outputPath, strin
         }
     }
 
-    RewriteDirectorySuffixes(loaded.Bundle.file, tableSuffix);
     WritePackedBundle(loaded.Bundle.file, loaded.Assets.file, outputPath);
     Console.WriteLine(JsonSerializer.Serialize(new { changed, output = outputPath }));
     return 0;
@@ -187,19 +186,6 @@ static void WritePackedBundle(AssetBundleFile bundle, AssetsFile assets, string 
         uncompressedBundle.Pack(writer, AssetBundleCompressionType.LZ4);
     }
     File.Delete(tempPath);
-}
-
-static void RewriteDirectorySuffixes(AssetBundleFile bundle, string? tableSuffix)
-{
-    if (string.IsNullOrWhiteSpace(tableSuffix))
-    {
-        return;
-    }
-
-    foreach (var info in bundle.BlockAndDirInfo.DirectoryInfos)
-    {
-        info.Name = RewriteTableSuffix(info.Name, tableSuffix);
-    }
 }
 
 static string RewriteTableSuffix(string value, string suffix)

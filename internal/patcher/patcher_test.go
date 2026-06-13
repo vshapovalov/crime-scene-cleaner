@@ -46,6 +46,57 @@ func TestRuntimeBundlePathForTargetUsesLanguageSpecificExports(t *testing.T) {
 	}
 }
 
+func TestTargetBundleTemplatePathPrefersBackupWhenPresent(t *testing.T) {
+	root := t.TempDir()
+	gameDir := filepath.Join(root, "Crime Scene Cleaner")
+	targetDir := filepath.Join(gameDir, "CrimeCleaner_Data", "StreamingAssets", "aa", "StandaloneWindows64")
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	target, err := TargetBundlePath(gameDir, TargetEnglish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte("current"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target+".bak", []byte("original"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	template, err := TargetBundleTemplatePath(gameDir, TargetEnglish)
+	if err != nil {
+		t.Fatalf("TargetBundleTemplatePath returned error: %v", err)
+	}
+	if template != target+".bak" {
+		t.Fatalf("template = %q, want backup", template)
+	}
+}
+
+func TestTargetBundleTemplatePathFallsBackToCurrentBundle(t *testing.T) {
+	root := t.TempDir()
+	gameDir := filepath.Join(root, "Crime Scene Cleaner")
+	targetDir := filepath.Join(gameDir, "CrimeCleaner_Data", "StreamingAssets", "aa", "StandaloneWindows64")
+	if err := os.MkdirAll(targetDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	target, err := TargetBundlePath(gameDir, TargetPolish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(target, []byte("current"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	template, err := TargetBundleTemplatePath(gameDir, TargetPolish)
+	if err != nil {
+		t.Fatalf("TargetBundleTemplatePath returned error: %v", err)
+	}
+	if template != target {
+		t.Fatalf("template = %q, want current target", template)
+	}
+}
+
 func TestApplyCreatesBackupAndCopiesTranslation(t *testing.T) {
 	root := t.TempDir()
 	gameDir := filepath.Join(root, "Crime Scene Cleaner")

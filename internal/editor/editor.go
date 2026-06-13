@@ -142,12 +142,15 @@ func ExportBundle(ctx context.Context, runner CommandRunner, bundleToolPath stri
 	return EditorData{Rows: rows, TempDir: tempDir}, nil
 }
 
-func ImportBundle(ctx context.Context, runner CommandRunner, bundleToolPath string, bundlePath string, rows []TranslationRow, englishTemplatePath string, polishTemplatePath string) error {
+func ImportBundle(ctx context.Context, runner CommandRunner, bundleToolPath string, bundlePath string, rows []TranslationRow, workingTemplatePath string, englishTemplatePath string, polishTemplatePath string) error {
 	if err := requireFile(bundleToolPath); err != nil {
 		return fmt.Errorf("інструмент для бандлів відсутній: %w", err)
 	}
 	if err := requireFile(bundlePath); err != nil {
 		return err
+	}
+	if err := requireFile(workingTemplatePath); err != nil {
+		return fmt.Errorf("відсутній шаблон робочого бандла: %w", err)
 	}
 	if err := requireFile(englishTemplatePath); err != nil {
 		return fmt.Errorf("відсутній шаблон експорту англійської: %w", err)
@@ -177,7 +180,7 @@ func ImportBundle(ctx context.Context, runner CommandRunner, bundleToolPath stri
 	englishPath := filepath.Join(baseDir, RuntimeEnglishBundle)
 	polishPath := filepath.Join(baseDir, RuntimePolishBundle)
 
-	if err := importBundleTo(ctx, runner, bundleToolPath, bundlePath, rowsPath, bundlePath, "", ""); err != nil {
+	if err := importBundleTo(ctx, runner, bundleToolPath, workingTemplatePath, rowsPath, bundlePath, "", ""); err != nil {
 		return err
 	}
 	if err := importBundleTo(ctx, runner, bundleToolPath, englishTemplatePath, rowsPath, englishPath, "en", "_en"); err != nil {
