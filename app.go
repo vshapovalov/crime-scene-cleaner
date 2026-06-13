@@ -148,8 +148,25 @@ func (a *App) SaveTranslationEditor(rows []editor.TranslationRow) error {
 		a.emitEditorProgress("save", 100, status.Message)
 		return os.ErrNotExist
 	}
+	info, err := steam.DetectGame()
+	if err != nil {
+		a.emitEditorProgress("save", 100, "Failed to detect game")
+		return err
+	}
+	if !info.Installed {
+		a.emitEditorProgress("save", 100, "Game was not found")
+		return os.ErrNotExist
+	}
+	englishTemplate, err := patcher.TargetBundlePath(info.Path, patcher.TargetEnglish)
+	if err != nil {
+		return err
+	}
+	polishTemplate, err := patcher.TargetBundlePath(info.Path, patcher.TargetPolish)
+	if err != nil {
+		return err
+	}
 	a.emitEditorProgress("save", 35, "Packing translations into bundle")
-	if err := editor.ImportBundle(context.Background(), editor.ExecRunner{}, python, bundlePath, rows); err != nil {
+	if err := editor.ImportBundle(context.Background(), editor.ExecRunner{}, python, bundlePath, rows, englishTemplate, polishTemplate); err != nil {
 		a.emitEditorProgress("save", 100, "Failed to save translation bundle")
 		return err
 	}

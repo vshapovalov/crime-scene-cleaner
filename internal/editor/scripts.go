@@ -56,10 +56,19 @@ bundle_path = Path(sys.argv[1])
 rows_path = Path(sys.argv[2])
 english_path = Path(sys.argv[3])
 polish_path = Path(sys.argv[4])
+english_template_path = Path(sys.argv[5])
+polish_template_path = Path(sys.argv[6])
 
 rows = json.loads(rows_path.read_text(encoding="utf-8"))
+
+def normalize_table_name(name):
+    for old_suffix in ("_ru", "_en", "_pl"):
+        if name.endswith(old_suffix):
+            return name[:-len(old_suffix)]
+    return name
+
 translations = {
-    (row["table"], str(row["id"])): row.get("text", "")
+    (normalize_table_name(row["table"]), str(row["id"])): row.get("text", "")
     for row in rows
 }
 
@@ -81,7 +90,7 @@ def apply_translations(env, locale_code=None, table_suffix=None):
             continue
         table_changed = False
         for entry in table_data:
-            key = (table_name, str(entry.get("m_Id", "")))
+            key = (normalize_table_name(table_name), str(entry.get("m_Id", "")))
             if key not in translations:
                 continue
             new_text = translations[key]
@@ -114,7 +123,8 @@ with bundle_path.open("wb") as out:
     out.write(env.file.save())
 
 def export_for_locale(target_path, locale_code, table_suffix):
-    shutil.copy2(bundle_path, target_path)
+    template_path = english_template_path if locale_code == "en" else polish_template_path
+    shutil.copy2(template_path, target_path)
     locale_env = UnityPy.load(str(target_path))
     apply_translations(locale_env, locale_code=locale_code, table_suffix=table_suffix)
     with target_path.open("wb") as out:

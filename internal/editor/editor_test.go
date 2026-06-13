@@ -8,6 +8,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"crime-scene-cleaner/internal/patcher"
 )
 
 type fakeRunner struct {
@@ -235,12 +237,25 @@ func TestImportBundleExportsEnglishAndPolishBundlesWithCorrectSuffixes(t *testin
 	}
 	data.Rows[0].Text = data.Rows[0].Text + " test"
 
-	if err := ImportBundle(context.Background(), ExecRunner{}, python, bundlePath, data.Rows); err != nil {
+	englishTemplate, err := targetBundlePathForTest(patcher.TargetEnglish)
+	if err != nil {
+		t.Fatal(err)
+	}
+	polishTemplate, err := targetBundlePathForTest(patcher.TargetPolish)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ImportBundle(context.Background(), ExecRunner{}, python, bundlePath, data.Rows, englishTemplate, polishTemplate); err != nil {
 		t.Fatalf("ImportBundle returned error: %v", err)
 	}
 
 	assertBundleSuffixes(t, python, filepath.Join(root, RuntimeEnglishBundle), "_en", "en")
 	assertBundleSuffixes(t, python, filepath.Join(root, RuntimePolishBundle), "_pl", "pl")
+}
+
+func targetBundlePathForTest(target patcher.TargetLanguage) (string, error) {
+	return patcher.TargetBundlePath(`G:\SteamLibrary\steamapps\common\Crime Scene Cleaner`, target)
 }
 
 type errTest string
@@ -259,7 +274,12 @@ import UnityPy
 env = UnityPy.load(sys.argv[1])
 bad_names = []
 bad_locales = []
+bad_containers = []
 checked = 0
+for file in env.files.values():
+    for container in getattr(file, "container", {}) or {}:
+        if not container.endswith(sys.argv[2] + ".asset"):
+            bad_containers.append(container)
 for obj in env.objects:
     if obj.type.name != "MonoBehaviour":
         continue
@@ -276,7 +296,7 @@ for obj in env.objects:
     code = tree.get("m_LocaleId", {}).get("m_Code")
     if code != sys.argv[3]:
         bad_locales.append([name, code])
-print(json.dumps({"checked": checked, "bad_names": bad_names, "bad_locales": bad_locales}, ensure_ascii=False))
+print(json.dumps({"checked": checked, "bad_names": bad_names, "bad_locales": bad_locales, "bad_containers": bad_containers}, ensure_ascii=False))
 `
 	out, err := exec.Command(python, "-c", script, bundlePath, suffix, locale).CombinedOutput()
 	if err != nil {
@@ -286,6 +306,7 @@ print(json.dumps({"checked": checked, "bad_names": bad_names, "bad_locales": bad
 		Checked    int        `json:"checked"`
 		BadNames   []string   `json:"bad_names"`
 		BadLocales [][]string `json:"bad_locales"`
+		BadPaths   []string   `json:"bad_containers"`
 	}
 	if err := json.Unmarshal(out, &result); err != nil {
 		t.Fatalf("decode inspection output: %v\n%s", err, out)
@@ -298,5 +319,8 @@ print(json.dumps({"checked": checked, "bad_names": bad_names, "bad_locales": bad
 	}
 	if len(result.BadLocales) > 0 {
 		t.Fatalf("tables with wrong locale in %s: %v", bundlePath, result.BadLocales[:min(3, len(result.BadLocales))])
+	}
+	if len(result.BadPaths) > 0 {
+		t.Fatalf("containers with wrong suffix in %s: %v", bundlePath, result.BadPaths[:min(3, len(result.BadPaths))])
 	}
 }

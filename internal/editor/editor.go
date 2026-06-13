@@ -128,9 +128,15 @@ func ExportBundle(ctx context.Context, runner CommandRunner, python string, bund
 	return EditorData{Rows: rows, TempDir: tempDir}, nil
 }
 
-func ImportBundle(ctx context.Context, runner CommandRunner, python string, bundlePath string, rows []TranslationRow) error {
+func ImportBundle(ctx context.Context, runner CommandRunner, python string, bundlePath string, rows []TranslationRow, englishTemplatePath string, polishTemplatePath string) error {
 	if err := requireFile(bundlePath); err != nil {
 		return err
+	}
+	if err := requireFile(englishTemplatePath); err != nil {
+		return fmt.Errorf("english export template is missing: %w", err)
+	}
+	if err := requireFile(polishTemplatePath); err != nil {
+		return fmt.Errorf("polish export template is missing: %w", err)
 	}
 	tempDir, err := os.MkdirTemp("", "crime-scene-cleaner-localization-save-*")
 	if err != nil {
@@ -157,7 +163,7 @@ func ImportBundle(ctx context.Context, runner CommandRunner, python string, bund
 	baseDir := filepath.Dir(bundlePath)
 	englishPath := filepath.Join(baseDir, RuntimeEnglishBundle)
 	polishPath := filepath.Join(baseDir, RuntimePolishBundle)
-	_, err = runner.Run(ctx, python, scriptPath, bundlePath, rowsPath, englishPath, polishPath)
+	_, err = runner.Run(ctx, python, scriptPath, bundlePath, rowsPath, englishPath, polishPath, englishTemplatePath, polishTemplatePath)
 	return err
 }
 
