@@ -33,9 +33,10 @@ type ToolingStatus struct {
 }
 
 type TranslationRow struct {
-	Table string `json:"table"`
-	ID    string `json:"id"`
-	Text  string `json:"text"`
+	Table    string `json:"table"`
+	ID       string `json:"id"`
+	Text     string `json:"text"`
+	Original string `json:"original"`
 }
 
 type EditorData struct {
@@ -44,9 +45,10 @@ type EditorData struct {
 }
 
 const (
-	RuntimeEditableBundle = "ukrainian-localization.bundle"
-	RuntimeEnglishBundle  = "ukrainian-localization_en.bundle"
-	RuntimePolishBundle   = "ukrainian-localization_pl.bundle"
+	RuntimeEditableBundle   = "ukrainian-localization.bundle"
+	RuntimeDictionaryBundle = "ukrainian-localization-dictionary.bundle"
+	RuntimeEnglishBundle    = "ukrainian-localization_en.bundle"
+	RuntimePolishBundle     = "ukrainian-localization_pl.bundle"
 )
 
 func DefaultPythonExecutable() string {
@@ -86,7 +88,7 @@ func MarshalRows(rows []TranslationRow) ([]byte, error) {
 	return json.MarshalIndent(rows, "", "  ")
 }
 
-func ExportBundle(ctx context.Context, runner CommandRunner, python string, bundlePath string) (EditorData, error) {
+func ExportBundle(ctx context.Context, runner CommandRunner, python string, bundlePath string, dictionaryPath string) (EditorData, error) {
 	if err := requireFile(bundlePath); err != nil {
 		return EditorData{}, err
 	}
@@ -101,7 +103,7 @@ func ExportBundle(ctx context.Context, runner CommandRunner, python string, bund
 	}
 	outputPath := filepath.Join(tempDir, "translations.json")
 
-	if _, err := runner.Run(ctx, python, scriptPath, bundlePath, outputPath); err != nil {
+	if _, err := runner.Run(ctx, python, scriptPath, bundlePath, outputPath, dictionaryPath); err != nil {
 		return EditorData{}, err
 	}
 	data, err := os.ReadFile(outputPath)
@@ -148,11 +150,23 @@ func ImportBundle(ctx context.Context, runner CommandRunner, python string, bund
 	return err
 }
 
-func EnsureEditableBundle(bundlePath string, gameDir string) error {
-	if _, err := os.Stat(bundlePath); err == nil {
-		return nil
-	} else if !errors.Is(err, os.ErrNotExist) {
+func EnsureEditorBundles(bundlePath string, dictionaryPath string, gameDir string) error {
+	needsEditable := false
+	if _, err := os.Stat(bundlePath); errors.Is(err, os.ErrNotExist) {
+		needsEditable = true
+	} else if err != nil {
 		return err
+	}
+
+	needsDictionary := false
+	if _, err := os.Stat(dictionaryPath); errors.Is(err, os.ErrNotExist) {
+		needsDictionary = true
+	} else if err != nil {
+		return err
+	}
+
+	if !needsEditable && !needsDictionary {
+		return nil
 	}
 
 	sourcePath, err := patcher.TargetBundlePath(gameDir, patcher.TargetRussian)
@@ -162,7 +176,27 @@ func EnsureEditableBundle(bundlePath string, gameDir string) error {
 	if err := requireFile(sourcePath); err != nil {
 		return fmt.Errorf("russian source bundle is missing: %w", err)
 	}
-	return copyFile(sourcePath, bundlePath)
+
+	if needsEditable {
+		if err := copyFile(sourcePath, bundlePath); err != nil {
+			return err
+		}
+	}
+
+	if needsDictionary {
+		if err := copyFile(sourcePath, dictionaryPath); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func EnsureEditableBundle(bundlePath string, gameDir string) error {
+	return EnsureEditorBundles(bundlePath, filepath.Join(filepath.Dir(bundlePath), RuntimeDictionaryBundle), gameDir)
+}
+
+func DictionaryBundlePath(bundlePath string) string {
+	return filepath.Join(filepath.Dir(bundlePath), RuntimeDictionaryBundle)
 }
 
 func writeHelperScript(dir string, name string, content string) (string, error) {

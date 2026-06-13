@@ -100,6 +100,7 @@ func (a *App) LoadTranslationEditor() (editor.EditorData, error) {
 		return editor.EditorData{}, err
 	}
 	bundlePath := patcher.RuntimeBundlePath(executable)
+	dictionaryPath := editor.DictionaryBundlePath(bundlePath)
 	python := editor.DefaultPythonExecutable()
 
 	a.emitEditorProgress("load", 10, "Checking editor tooling")
@@ -118,13 +119,13 @@ func (a *App) LoadTranslationEditor() (editor.EditorData, error) {
 		a.emitEditorProgress("load", 100, "Game was not found")
 		return editor.EditorData{}, os.ErrNotExist
 	}
-	if err := editor.EnsureEditableBundle(bundlePath, info.Path); err != nil {
+	if err := editor.EnsureEditorBundles(bundlePath, dictionaryPath, info.Path); err != nil {
 		a.emitEditorProgress("load", 100, "Failed to prepare editable bundle")
 		return editor.EditorData{}, err
 	}
 
 	a.emitEditorProgress("load", 45, "Unpacking ukrainian-localization.bundle")
-	data, err := editor.ExportBundle(context.Background(), editor.ExecRunner{}, python, bundlePath)
+	data, err := editor.ExportBundle(context.Background(), editor.ExecRunner{}, python, bundlePath, dictionaryPath)
 	if err != nil {
 		a.emitEditorProgress("load", 100, "Failed to read translation bundle")
 		return editor.EditorData{}, err

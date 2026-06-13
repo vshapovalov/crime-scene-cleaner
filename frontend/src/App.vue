@@ -285,6 +285,7 @@ onUnmounted(() => {
           <tr>
             <th>Table</th>
             <th>ID</th>
+            <th>Original</th>
             <th>Translation</th>
           </tr>
         </thead>
@@ -292,6 +293,7 @@ onUnmounted(() => {
           <tr v-for="row in editorRows" :key="`${row.table}:${row.id}`">
             <td>{{ row.table }}</td>
             <td>{{ row.id }}</td>
+            <td class="original-text">{{ row.original }}</td>
             <td>
               <textarea v-model="row.text" rows="2"></textarea>
             </td>

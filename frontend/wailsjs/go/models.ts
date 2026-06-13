@@ -4,6 +4,7 @@ export namespace editor {
 	    table: string;
 	    id: string;
 	    text: string;
+	    original: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new TranslationRow(source);
@@ -14,6 +15,7 @@ export namespace editor {
 	        this.table = source["table"];
 	        this.id = source["id"];
 	        this.text = source["text"];
+	        this.original = source["original"];
 	    }
 	}
 	export class EditorData {

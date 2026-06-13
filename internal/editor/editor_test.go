@@ -67,9 +67,10 @@ func TestCheckToolingReportsMissingUnityPy(t *testing.T) {
 
 func TestMarshalRowsPreservesLargeUnityIdsAsStrings(t *testing.T) {
 	rows := []TranslationRow{{
-		Table: "Languages_en",
-		ID:    "272843213265616896",
-		Text:  "Magyar",
+		Table:    "Languages_en",
+		ID:       "272843213265616896",
+		Text:     "Magyar",
+		Original: "Magyar",
 	}}
 
 	data, err := MarshalRows(rows)
@@ -99,7 +100,7 @@ func TestEnsureEditableBundleCopiesRussianBundleWhenMissing(t *testing.T) {
 	}
 	target := filepath.Join(root, "ukrainian-localization.bundle")
 
-	if err := EnsureEditableBundle(target, gameDir); err != nil {
+	if err := EnsureEditorBundles(target, filepath.Join(root, RuntimeDictionaryBundle), gameDir); err != nil {
 		t.Fatalf("EnsureEditableBundle returned error: %v", err)
 	}
 	data, err := os.ReadFile(target)
@@ -109,17 +110,28 @@ func TestEnsureEditableBundleCopiesRussianBundleWhenMissing(t *testing.T) {
 	if string(data) != "russian bundle" {
 		t.Fatalf("target content = %q", string(data))
 	}
+	dictionary, err := os.ReadFile(filepath.Join(root, RuntimeDictionaryBundle))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(dictionary) != "russian bundle" {
+		t.Fatalf("dictionary content = %q", string(dictionary))
+	}
 }
 
 func TestEnsureEditableBundleKeepsExistingBundle(t *testing.T) {
 	root := t.TempDir()
 	gameDir := filepath.Join(root, "Crime Scene Cleaner")
 	target := filepath.Join(root, "ukrainian-localization.bundle")
+	dictionary := filepath.Join(root, RuntimeDictionaryBundle)
 	if err := os.WriteFile(target, []byte("existing"), 0o644); err != nil {
 		t.Fatal(err)
 	}
+	if err := os.WriteFile(dictionary, []byte("dictionary"), 0o644); err != nil {
+		t.Fatal(err)
+	}
 
-	if err := EnsureEditableBundle(target, gameDir); err != nil {
+	if err := EnsureEditorBundles(target, dictionary, gameDir); err != nil {
 		t.Fatalf("EnsureEditableBundle returned error: %v", err)
 	}
 	data, err := os.ReadFile(target)
@@ -128,6 +140,42 @@ func TestEnsureEditableBundleKeepsExistingBundle(t *testing.T) {
 	}
 	if string(data) != "existing" {
 		t.Fatalf("target content = %q", string(data))
+	}
+}
+
+func TestExportBundleMergesOriginalTextFromDictionary(t *testing.T) {
+	source := `G:\SteamLibrary\steamapps\common\Crime Scene Cleaner\CrimeCleaner_Data\StreamingAssets\aa\StandaloneWindows64\localization-string-tables-russian(ru)_assets_all.bundle`
+	if _, err := os.Stat(source); err != nil {
+		t.Skip("local Crime Scene Cleaner russian bundle is not available")
+	}
+	python, err := exec.LookPath("python")
+	if err != nil {
+		t.Skip("python is not available")
+	}
+	status := CheckTooling(context.Background(), ExecRunner{}, python)
+	if !status.Ready {
+		t.Skip("UnityPy is not available")
+	}
+
+	root := t.TempDir()
+	bundlePath := filepath.Join(root, RuntimeEditableBundle)
+	dictionaryPath := filepath.Join(root, RuntimeDictionaryBundle)
+	if err := copyFile(source, bundlePath); err != nil {
+		t.Fatal(err)
+	}
+	if err := copyFile(source, dictionaryPath); err != nil {
+		t.Fatal(err)
+	}
+
+	data, err := ExportBundle(context.Background(), ExecRunner{}, python, bundlePath, dictionaryPath)
+	if err != nil {
+		t.Fatalf("ExportBundle returned error: %v", err)
+	}
+	if len(data.Rows) == 0 {
+		t.Fatal("expected exported rows")
+	}
+	if data.Rows[0].Original == "" {
+		t.Fatal("expected Original to be populated from dictionary bundle")
 	}
 }
 
@@ -150,7 +198,7 @@ func TestImportBundleExportsEnglishAndPolishBundlesWithCorrectSuffixes(t *testin
 	if err := copyFile(source, bundlePath); err != nil {
 		t.Fatal(err)
 	}
-	data, err := ExportBundle(context.Background(), ExecRunner{}, python, bundlePath)
+	data, err := ExportBundle(context.Background(), ExecRunner{}, python, bundlePath, "")
 	if err != nil {
 		t.Fatalf("ExportBundle returned error: %v", err)
 	}

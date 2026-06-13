@@ -8,27 +8,38 @@ import UnityPy
 
 bundle_path = Path(sys.argv[1])
 output_path = Path(sys.argv[2])
+dictionary_path = Path(sys.argv[3]) if len(sys.argv) > 3 and sys.argv[3] else None
 
-env = UnityPy.load(str(bundle_path))
-rows = []
+def read_rows(path):
+    env = UnityPy.load(str(path))
+    rows = []
+    for obj in env.objects:
+        if obj.type.name != "MonoBehaviour":
+            continue
+        try:
+            tree = obj.read_typetree()
+        except Exception:
+            continue
+        table_name = tree.get("m_Name")
+        table_data = tree.get("m_TableData")
+        if not table_name or not isinstance(table_data, list):
+            continue
+        for entry in table_data:
+            rows.append({
+                "table": table_name,
+                "id": str(entry.get("m_Id", "")),
+                "text": entry.get("m_Localized", ""),
+            })
+    return rows
 
-for obj in env.objects:
-    if obj.type.name != "MonoBehaviour":
-        continue
-    try:
-        tree = obj.read_typetree()
-    except Exception:
-        continue
-    table_name = tree.get("m_Name")
-    table_data = tree.get("m_TableData")
-    if not table_name or not isinstance(table_data, list):
-        continue
-    for entry in table_data:
-        rows.append({
-            "table": table_name,
-            "id": str(entry.get("m_Id", "")),
-            "text": entry.get("m_Localized", ""),
-        })
+rows = read_rows(bundle_path)
+originals = {}
+if dictionary_path and dictionary_path.exists():
+    for row in read_rows(dictionary_path):
+        originals[(row["table"], row["id"])] = row["text"]
+
+for row in rows:
+    row["original"] = originals.get((row["table"], row["id"]), row["text"])
 
 output_path.write_text(json.dumps(rows, ensure_ascii=False, indent=2), encoding="utf-8")
 print(json.dumps({"rows": len(rows)}, ensure_ascii=False))

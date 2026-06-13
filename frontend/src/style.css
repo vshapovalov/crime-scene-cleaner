@@ -293,6 +293,16 @@ button {
     font-size: 12px;
 }
 
+.translation-table td:nth-child(3) {
+    width: 35%;
+}
+
+.original-text {
+    color: #3f3f46;
+    line-height: 1.35;
+    white-space: pre-wrap;
+}
+
 .translation-table textarea {
     display: block;
     width: 100%;

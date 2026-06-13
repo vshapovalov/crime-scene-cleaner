@@ -19,11 +19,12 @@ The editor button is hidden by default. Click `v1.0.0` in the bottom-right corne
 
 When the editor opens, the app checks for Python and UnityPy. If UnityPy is missing, the app asks for confirmation before installing it with pip. After tooling is ready, the app loads `ukrainian-localization.bundle` from next to the executable.
 
-If `ukrainian-localization.bundle` does not exist yet, the app copies the Russian game string-table bundle and uses that as the first editable translation bundle.
+If `ukrainian-localization.bundle` does not exist yet, the app copies the Russian game string-table bundle and uses that as the first editable translation bundle. It also creates `ukrainian-localization-dictionary.bundle` from the same Russian source and uses it as the read-only `Original` column in the editor table.
 
 On save, the editor writes:
 
 - `ukrainian-localization.bundle` - editable Russian-structured working bundle.
+- `ukrainian-localization-dictionary.bundle` - read-only Russian source dictionary.
 - `ukrainian-localization_en.bundle` - English-slot export with `*_en` tables and locale `en`.
 - `ukrainian-localization_pl.bundle` - Polish-slot export with `*_pl` tables and locale `pl`.
 
@@ -40,6 +41,7 @@ Place the Ukrainian replacement bundle next to the built executable:
 ```text
 build/bin/crime-scene-cleaner.exe
 build/bin/ukrainian-localization.bundle
+build/bin/ukrainian-localization-dictionary.bundle
 build/bin/ukrainian-localization_en.bundle
 build/bin/ukrainian-localization_pl.bundle
 ```
