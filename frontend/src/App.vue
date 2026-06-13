@@ -6,7 +6,6 @@ import {
   GetEditorToolingStatus,
   GetGameStatus,
   ImportTranslationJSON,
-  InstallEditorTooling,
   LoadTranslationEditor,
   SaveTranslationEditor,
 } from '../wailsjs/go/main/App'
@@ -147,29 +146,10 @@ async function openEditor() {
   }
 
   editorProgress.value = { stage: 'tooling', percent: 0, message: 'Перевіряємо інструменти' }
-  let tooling = await GetEditorToolingStatus()
+  const tooling = await GetEditorToolingStatus()
   if (!tooling.ready) {
-    if (!tooling.pythonAvailable) {
-      error.value = 'Python не знайдено. Встановіть Python і повторіть спробу.'
-      return
-    }
-    const accepted = window.confirm('Для редагування bundle потрібно встановити UnityPy. Встановити зараз?')
-    if (!accepted) {
-      return
-    }
-    try {
-      editorLoading.value = true
-      tooling = await InstallEditorTooling()
-    } catch (err) {
-      error.value = formatError(err)
-      return
-    } finally {
-      editorLoading.value = false
-    }
-    if (!tooling.ready) {
-      error.value = tooling.message || 'Інструменти редактора не готові'
-      return
-    }
+    error.value = tooling.message || 'Інструменти редактора не готові'
+    return
   }
 
   view.value = 'editor'

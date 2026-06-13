@@ -1,4 +1,7 @@
 build/bin
 frontend/dist
 frontend/node_modules
+.tools/
+tools/BundleTool/bin/
+tools/BundleTool/obj/
 *.log

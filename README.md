@@ -17,7 +17,7 @@ The app creates a `.bak` backup of the selected original language bundle before 
 
 The editor button is hidden by default. Click `v1.0.0` in the bottom-right corner to show `Редагувати переклад`.
 
-When the editor opens, the app checks for Python and UnityPy. If UnityPy is missing, the app asks for confirmation before installing it with pip. After tooling is ready, the app loads `ukrainian-localization.bundle` from next to the executable.
+When the editor opens, the app checks for `BundleTool.exe` next to the executable. `BundleTool.exe` is a small AssetsTools.NET-based helper used to export, import, and LZ4-pack Unity bundles without UnityPy. After tooling is ready, the app loads `ukrainian-localization.bundle` from next to the executable.
 
 If `ukrainian-localization.bundle` does not exist yet, the app copies the Russian game string-table bundle and uses that as the first editable translation bundle. It also creates `ukrainian-localization-dictionary.bundle` from the same Russian source and uses it as the read-only `Original` column in the editor table.
 
@@ -44,6 +44,8 @@ Place the Ukrainian replacement bundle next to the built executable:
 
 ```text
 build/bin/crime-scene-cleaner.exe
+build/bin/BundleTool.exe
+build/bin/classdata.tpk
 build/bin/ukrainian-localization.bundle
 build/bin/ukrainian-localization-dictionary.bundle
 build/bin/ukrainian-localization_en.bundle
@@ -66,6 +68,7 @@ npm.cmd install
 npm.cmd run build
 cd ..
 wails build
+.\.tools\dotnet-sdk\dotnet.exe publish tools\BundleTool\BundleTool.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o build\bin
 ```
 
 Use `npm.cmd` on Windows PowerShell if script execution policy blocks `npm.ps1`.

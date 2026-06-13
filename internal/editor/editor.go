@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"crime-scene-cleaner/internal/patcher"
 )
@@ -25,11 +26,10 @@ func (ExecRunner) Run(ctx context.Context, name string, args ...string) (string,
 }
 
 type ToolingStatus struct {
-	Ready            bool   `json:"ready"`
-	PythonAvailable  bool   `json:"pythonAvailable"`
-	UnityPyAvailable bool   `json:"unityPyAvailable"`
-	PythonExecutable string `json:"pythonExecutable"`
-	Message          string `json:"message"`
+	Ready               bool   `json:"ready"`
+	BundleToolAvailable bool   `json:"bundleToolAvailable"`
+	BundleToolPath      string `json:"bundleToolPath"`
+	Message             string `json:"message"`
 }
 
 type TranslationRow struct {
@@ -51,37 +51,20 @@ const (
 	RuntimePolishBundle     = "ukrainian-localization_pl.bundle"
 )
 
-func DefaultPythonExecutable() string {
-	if path, err := exec.LookPath("python"); err == nil {
-		return path
-	}
-	if path, err := exec.LookPath("py"); err == nil {
-		return path
-	}
-	return "python"
+func RuntimeBundleToolPath(executablePath string) string {
+	return filepath.Join(filepath.Dir(executablePath), "BundleTool.exe")
 }
 
-func CheckTooling(ctx context.Context, runner CommandRunner, python string) ToolingStatus {
-	status := ToolingStatus{PythonExecutable: python}
-	if _, err := runner.Run(ctx, python, "--version"); err != nil {
-		status.Message = "Python is not available"
+func CheckTooling(bundleToolPath string) ToolingStatus {
+	status := ToolingStatus{BundleToolPath: bundleToolPath}
+	if err := requireFile(bundleToolPath); err != nil {
+		status.Message = "BundleTool.exe is missing next to the app executable"
 		return status
 	}
-	status.PythonAvailable = true
-
-	if _, err := runner.Run(ctx, python, "-c", "import UnityPy"); err != nil {
-		status.Message = "UnityPy is not installed"
-		return status
-	}
-	status.UnityPyAvailable = true
+	status.BundleToolAvailable = true
 	status.Ready = true
 	status.Message = "Editor tooling is ready"
 	return status
-}
-
-func InstallUnityPy(ctx context.Context, runner CommandRunner, python string) error {
-	_, err := runner.Run(ctx, python, "-m", "pip", "install", "UnityPy")
-	return err
 }
 
 func MarshalRows(rows []TranslationRow) ([]byte, error) {
@@ -99,22 +82,21 @@ func UnmarshalRows(data []byte) ([]TranslationRow, error) {
 	return rows, nil
 }
 
-func ExportBundle(ctx context.Context, runner CommandRunner, python string, bundlePath string, dictionaryPath string) (EditorData, error) {
+func ExportBundle(ctx context.Context, runner CommandRunner, bundleToolPath string, bundlePath string, dictionaryPath string) (EditorData, error) {
 	if err := requireFile(bundlePath); err != nil {
 		return EditorData{}, err
+	}
+	if err := requireFile(bundleToolPath); err != nil {
+		return EditorData{}, fmt.Errorf("bundle tool is missing: %w", err)
 	}
 
 	tempDir, err := os.MkdirTemp("", "crime-scene-cleaner-localization-*")
 	if err != nil {
 		return EditorData{}, err
 	}
-	scriptPath, err := writeHelperScript(tempDir, "export_bundle.py", exportScript)
-	if err != nil {
-		return EditorData{}, err
-	}
-	outputPath := filepath.Join(tempDir, "translations.json")
+	outputPath := filepath.Join(tempDir, "editable.json")
 
-	if _, err := runner.Run(ctx, python, scriptPath, bundlePath, outputPath, dictionaryPath); err != nil {
+	if _, err := runner.Run(ctx, bundleToolPath, "export", bundlePath, outputPath); err != nil {
 		return EditorData{}, err
 	}
 	data, err := os.ReadFile(outputPath)
@@ -125,10 +107,45 @@ func ExportBundle(ctx context.Context, runner CommandRunner, python string, bund
 	if err != nil {
 		return EditorData{}, err
 	}
+	if dictionaryPath != "" {
+		if err := requireFile(dictionaryPath); err == nil {
+			dictionaryOutputPath := filepath.Join(tempDir, "dictionary.json")
+			if _, err := runner.Run(ctx, bundleToolPath, "export", dictionaryPath, dictionaryOutputPath); err != nil {
+				return EditorData{}, err
+			}
+			dictionaryData, err := os.ReadFile(dictionaryOutputPath)
+			if err != nil {
+				return EditorData{}, err
+			}
+			dictionaryRows, err := UnmarshalRows(dictionaryData)
+			if err != nil {
+				return EditorData{}, err
+			}
+			originals := map[string]string{}
+			for _, row := range dictionaryRows {
+				originals[rowKey(row.Table, row.ID)] = row.Text
+			}
+			for i := range rows {
+				if original, ok := originals[rowKey(rows[i].Table, rows[i].ID)]; ok {
+					rows[i].Original = original
+				} else {
+					rows[i].Original = rows[i].Text
+				}
+			}
+		}
+	}
+	for i := range rows {
+		if rows[i].Original == "" {
+			rows[i].Original = rows[i].Text
+		}
+	}
 	return EditorData{Rows: rows, TempDir: tempDir}, nil
 }
 
-func ImportBundle(ctx context.Context, runner CommandRunner, python string, bundlePath string, rows []TranslationRow, englishTemplatePath string, polishTemplatePath string) error {
+func ImportBundle(ctx context.Context, runner CommandRunner, bundleToolPath string, bundlePath string, rows []TranslationRow, englishTemplatePath string, polishTemplatePath string) error {
+	if err := requireFile(bundleToolPath); err != nil {
+		return fmt.Errorf("bundle tool is missing: %w", err)
+	}
 	if err := requireFile(bundlePath); err != nil {
 		return err
 	}
@@ -139,10 +156,6 @@ func ImportBundle(ctx context.Context, runner CommandRunner, python string, bund
 		return fmt.Errorf("polish export template is missing: %w", err)
 	}
 	tempDir, err := os.MkdirTemp("", "crime-scene-cleaner-localization-save-*")
-	if err != nil {
-		return err
-	}
-	scriptPath, err := writeHelperScript(tempDir, "import_bundle.py", importScript)
 	if err != nil {
 		return err
 	}
@@ -163,8 +176,14 @@ func ImportBundle(ctx context.Context, runner CommandRunner, python string, bund
 	baseDir := filepath.Dir(bundlePath)
 	englishPath := filepath.Join(baseDir, RuntimeEnglishBundle)
 	polishPath := filepath.Join(baseDir, RuntimePolishBundle)
-	_, err = runner.Run(ctx, python, scriptPath, bundlePath, rowsPath, englishPath, polishPath, englishTemplatePath, polishTemplatePath)
-	return err
+
+	if err := importBundleTo(ctx, runner, bundleToolPath, bundlePath, rowsPath, bundlePath, "", ""); err != nil {
+		return err
+	}
+	if err := importBundleTo(ctx, runner, bundleToolPath, englishTemplatePath, rowsPath, englishPath, "en", "_en"); err != nil {
+		return err
+	}
+	return importBundleTo(ctx, runner, bundleToolPath, polishTemplatePath, rowsPath, polishPath, "pl", "_pl")
 }
 
 func EnsureEditorBundles(bundlePath string, dictionaryPath string, gameDir string) error {
@@ -216,14 +235,6 @@ func DictionaryBundlePath(bundlePath string) string {
 	return filepath.Join(filepath.Dir(bundlePath), RuntimeDictionaryBundle)
 }
 
-func writeHelperScript(dir string, name string, content string) (string, error) {
-	path := filepath.Join(dir, name)
-	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
-		return "", err
-	}
-	return path, nil
-}
-
 func requireFile(path string) error {
 	stat, err := os.Stat(path)
 	if err != nil {
@@ -241,4 +252,35 @@ func copyFile(source string, target string) error {
 		return err
 	}
 	return os.WriteFile(target, data, 0o644)
+}
+
+func importBundleTo(ctx context.Context, runner CommandRunner, bundleToolPath string, templatePath string, rowsPath string, outputPath string, locale string, suffix string) error {
+	outputTempPath := filepath.Join(filepath.Dir(outputPath), "."+filepath.Base(outputPath)+".tmp")
+	args := []string{"import", templatePath, rowsPath, outputTempPath}
+	if locale != "" {
+		args = append(args, locale, suffix)
+	}
+	if _, err := runner.Run(ctx, bundleToolPath, args...); err != nil {
+		return err
+	}
+	if err := requireFile(outputTempPath); err != nil {
+		return fmt.Errorf("bundle tool did not create output bundle: %w", err)
+	}
+	if err := os.Remove(outputPath); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	return os.Rename(outputTempPath, outputPath)
+}
+
+func rowKey(table string, id string) string {
+	return normalizeTableName(table) + "\x00" + id
+}
+
+func normalizeTableName(table string) string {
+	for _, suffix := range []string{"_ru", "_en", "_pl"} {
+		if strings.HasSuffix(table, suffix) {
+			return strings.TrimSuffix(table, suffix)
+		}
+	}
+	return table
 }

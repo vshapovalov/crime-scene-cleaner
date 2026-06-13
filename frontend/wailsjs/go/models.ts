@@ -52,9 +52,8 @@ export namespace editor {
 	}
 	export class ToolingStatus {
 	    ready: boolean;
-	    pythonAvailable: boolean;
-	    unityPyAvailable: boolean;
-	    pythonExecutable: string;
+	    bundleToolAvailable: boolean;
+	    bundleToolPath: string;
 	    message: string;
 	
 	    static createFrom(source: any = {}) {
@@ -64,9 +63,8 @@ export namespace editor {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.ready = source["ready"];
-	        this.pythonAvailable = source["pythonAvailable"];
-	        this.unityPyAvailable = source["unityPyAvailable"];
-	        this.pythonExecutable = source["pythonExecutable"];
+	        this.bundleToolAvailable = source["bundleToolAvailable"];
+	        this.bundleToolPath = source["bundleToolPath"];
 	        this.message = source["message"];
 	    }
 	}

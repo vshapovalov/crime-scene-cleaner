@@ -67,29 +67,16 @@ func (a *App) ApplyTranslation(request ApplyRequest) (patcher.ApplyResult, error
 }
 
 func (a *App) GetEditorToolingStatus() editor.ToolingStatus {
-	return editor.CheckTooling(context.Background(), editor.ExecRunner{}, editor.DefaultPythonExecutable())
+	executable, err := os.Executable()
+	if err != nil {
+		return editor.ToolingStatus{Message: err.Error()}
+	}
+	return editor.CheckTooling(editor.RuntimeBundleToolPath(executable))
 }
 
 func (a *App) InstallEditorTooling() (editor.ToolingStatus, error) {
-	python := editor.DefaultPythonExecutable()
-	a.emitEditorProgress("tooling", 10, "Checking Python")
-	status := editor.CheckTooling(context.Background(), editor.ExecRunner{}, python)
-	if !status.PythonAvailable {
-		a.emitEditorProgress("tooling", 100, status.Message)
-		return status, nil
-	}
-	if status.UnityPyAvailable {
-		a.emitEditorProgress("tooling", 100, "Editor tooling is ready")
-		return status, nil
-	}
-
-	a.emitEditorProgress("tooling", 35, "Installing UnityPy")
-	if err := editor.InstallUnityPy(context.Background(), editor.ExecRunner{}, python); err != nil {
-		a.emitEditorProgress("tooling", 100, "UnityPy installation failed")
-		return editor.CheckTooling(context.Background(), editor.ExecRunner{}, python), err
-	}
-	a.emitEditorProgress("tooling", 85, "Verifying UnityPy")
-	status = editor.CheckTooling(context.Background(), editor.ExecRunner{}, python)
+	a.emitEditorProgress("tooling", 20, "Checking BundleTool.exe")
+	status := a.GetEditorToolingStatus()
 	a.emitEditorProgress("tooling", 100, status.Message)
 	return status, nil
 }
@@ -101,10 +88,10 @@ func (a *App) LoadTranslationEditor() (editor.EditorData, error) {
 	}
 	bundlePath := patcher.RuntimeBundlePath(executable)
 	dictionaryPath := editor.DictionaryBundlePath(bundlePath)
-	python := editor.DefaultPythonExecutable()
+	bundleToolPath := editor.RuntimeBundleToolPath(executable)
 
 	a.emitEditorProgress("load", 10, "Checking editor tooling")
-	status := editor.CheckTooling(context.Background(), editor.ExecRunner{}, python)
+	status := editor.CheckTooling(bundleToolPath)
 	if !status.Ready {
 		a.emitEditorProgress("load", 100, status.Message)
 		return editor.EditorData{}, os.ErrNotExist
@@ -125,7 +112,7 @@ func (a *App) LoadTranslationEditor() (editor.EditorData, error) {
 	}
 
 	a.emitEditorProgress("load", 45, "Unpacking ukrainian-localization.bundle")
-	data, err := editor.ExportBundle(context.Background(), editor.ExecRunner{}, python, bundlePath, dictionaryPath)
+	data, err := editor.ExportBundle(context.Background(), editor.ExecRunner{}, bundleToolPath, bundlePath, dictionaryPath)
 	if err != nil {
 		a.emitEditorProgress("load", 100, "Failed to read translation bundle")
 		return editor.EditorData{}, err
@@ -140,10 +127,10 @@ func (a *App) SaveTranslationEditor(rows []editor.TranslationRow) error {
 		return err
 	}
 	bundlePath := patcher.RuntimeBundlePath(executable)
-	python := editor.DefaultPythonExecutable()
+	bundleToolPath := editor.RuntimeBundleToolPath(executable)
 
 	a.emitEditorProgress("save", 10, "Checking editor tooling")
-	status := editor.CheckTooling(context.Background(), editor.ExecRunner{}, python)
+	status := editor.CheckTooling(bundleToolPath)
 	if !status.Ready {
 		a.emitEditorProgress("save", 100, status.Message)
 		return os.ErrNotExist
@@ -166,7 +153,7 @@ func (a *App) SaveTranslationEditor(rows []editor.TranslationRow) error {
 		return err
 	}
 	a.emitEditorProgress("save", 35, "Packing translations into bundle")
-	if err := editor.ImportBundle(context.Background(), editor.ExecRunner{}, python, bundlePath, rows, englishTemplate, polishTemplate); err != nil {
+	if err := editor.ImportBundle(context.Background(), editor.ExecRunner{}, bundleToolPath, bundlePath, rows, englishTemplate, polishTemplate); err != nil {
 		a.emitEditorProgress("save", 100, "Failed to save translation bundle")
 		return err
 	}
