@@ -6,9 +6,13 @@ import {editor} from '../models';
 
 export function ApplyTranslation(arg1:main.ApplyRequest):Promise<patcher.ApplyResult>;
 
+export function ExportTranslationJSON(arg1:Array<editor.TranslationRow>):Promise<string>;
+
 export function GetEditorToolingStatus():Promise<editor.ToolingStatus>;
 
 export function GetGameStatus():Promise<main.AppStatus>;
+
+export function ImportTranslationJSON():Promise<Array<editor.TranslationRow>>;
 
 export function InstallEditorTooling():Promise<editor.ToolingStatus>;
 

@@ -32,7 +32,11 @@ The editor view contains:
 
 - `Назад` to return to the main screen.
 - `Зберегти` to pack edited rows back into `ukrainian-localization.bundle`.
-- A translation table with Unity table name, string ID, and editable text.
+- `Експорт JSON` to save the current table rows to a user-selected JSON file.
+- `Імпорт JSON` to load translated rows from a user-selected JSON file.
+- Search across the read-only `Original` and editable `Translation` columns.
+- Pagination controls for changing pages and selecting how many rows are shown at once.
+- A translation table with Unity table name, string ID, read-only original text, and editable translation text.
 
 ## Runtime Translation File
 

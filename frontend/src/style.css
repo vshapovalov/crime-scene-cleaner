@@ -182,7 +182,7 @@ button {
 .editor-shell {
     position: relative;
     display: grid;
-    grid-template-rows: auto auto minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(0, 1fr) auto;
     gap: 12px;
     height: 100vh;
     overflow: hidden;
@@ -193,8 +193,10 @@ button {
 }
 
 .editor-toolbar,
+.editor-controls-panel,
 .progress-panel,
-.editor-table-panel {
+.editor-table-panel,
+.pagination-bar {
     border: 1px solid #e4e4e7;
     border-radius: 8px;
     background: #ffffff;
@@ -210,6 +212,7 @@ button {
 }
 
 .editor-actions {
+    flex-wrap: wrap;
     display: flex;
     gap: 10px;
 }
@@ -223,8 +226,42 @@ button {
     font-size: 13px;
 }
 
+.editor-controls-panel {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 12px;
+}
+
+.editor-search {
+    flex: 1 1 auto;
+    display: grid;
+    gap: 6px;
+    color: #52525b;
+    font-size: 13px;
+    text-align: left;
+}
+
+.page-size-control {
+    flex: 0 0 180px;
+    display: grid;
+    gap: 6px;
+    color: #52525b;
+    font-size: 13px;
+    text-align: left;
+}
+
 .progress-panel {
     padding: 12px;
+}
+
+.progress-panel.idle {
+    height: 0;
+    overflow: hidden;
+    border: 0;
+    box-shadow: none;
+    padding: 0;
 }
 
 .progress-label {
@@ -329,6 +366,16 @@ button {
     justify-content: center;
     color: #71717a;
     font-size: 14px;
+}
+
+.pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    padding: 10px 12px;
+    color: #52525b;
+    font-size: 13px;
 }
 
 .toast {

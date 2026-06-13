@@ -88,6 +88,17 @@ func MarshalRows(rows []TranslationRow) ([]byte, error) {
 	return json.MarshalIndent(rows, "", "  ")
 }
 
+func UnmarshalRows(data []byte) ([]TranslationRow, error) {
+	var rows []TranslationRow
+	if err := json.Unmarshal(data, &rows); err != nil {
+		return nil, err
+	}
+	if rows == nil {
+		return []TranslationRow{}, nil
+	}
+	return rows, nil
+}
+
 func ExportBundle(ctx context.Context, runner CommandRunner, python string, bundlePath string, dictionaryPath string) (EditorData, error) {
 	if err := requireFile(bundlePath); err != nil {
 		return EditorData{}, err
@@ -110,8 +121,8 @@ func ExportBundle(ctx context.Context, runner CommandRunner, python string, bund
 	if err != nil {
 		return EditorData{}, err
 	}
-	var rows []TranslationRow
-	if err := json.Unmarshal(data, &rows); err != nil {
+	rows, err := UnmarshalRows(data)
+	if err != nil {
 		return EditorData{}, err
 	}
 	return EditorData{Rows: rows, TempDir: tempDir}, nil

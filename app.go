@@ -157,6 +157,47 @@ func (a *App) SaveTranslationEditor(rows []editor.TranslationRow) error {
 	return nil
 }
 
+func (a *App) ExportTranslationJSON(rows []editor.TranslationRow) (string, error) {
+	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
+		Title:           "Export translation JSON",
+		DefaultFilename: "ukrainian-localization.json",
+		Filters: []runtime.FileFilter{{
+			DisplayName: "JSON files (*.json)",
+			Pattern:     "*.json",
+		}},
+		CanCreateDirectories: true,
+	})
+	if err != nil || path == "" {
+		return path, err
+	}
+	data, err := editor.MarshalRows(rows)
+	if err != nil {
+		return "", err
+	}
+	if err := os.WriteFile(path, data, 0o644); err != nil {
+		return "", err
+	}
+	return path, nil
+}
+
+func (a *App) ImportTranslationJSON() ([]editor.TranslationRow, error) {
+	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Import translation JSON",
+		Filters: []runtime.FileFilter{{
+			DisplayName: "JSON files (*.json)",
+			Pattern:     "*.json",
+		}},
+	})
+	if err != nil || path == "" {
+		return []editor.TranslationRow{}, err
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	return editor.UnmarshalRows(data)
+}
+
 func (a *App) emitEditorProgress(stage string, percent int, message string) {
 	if a.ctx == nil {
 		return

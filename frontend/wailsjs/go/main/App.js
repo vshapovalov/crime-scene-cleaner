@@ -6,12 +6,20 @@ export function ApplyTranslation(arg1) {
   return window['go']['main']['App']['ApplyTranslation'](arg1);
 }
 
+export function ExportTranslationJSON(arg1) {
+  return window['go']['main']['App']['ExportTranslationJSON'](arg1);
+}
+
 export function GetEditorToolingStatus() {
   return window['go']['main']['App']['GetEditorToolingStatus']();
 }
 
 export function GetGameStatus() {
   return window['go']['main']['App']['GetGameStatus']();
+}
+
+export function ImportTranslationJSON() {
+  return window['go']['main']['App']['ImportTranslationJSON']();
 }
 
 export function InstallEditorTooling() {

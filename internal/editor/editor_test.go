@@ -87,6 +87,34 @@ func TestMarshalRowsPreservesLargeUnityIdsAsStrings(t *testing.T) {
 	}
 }
 
+func TestUnmarshalRowsPreservesOriginalAndLargeUnityIds(t *testing.T) {
+	data := []byte(`[
+  {
+    "table": "UIText_ru",
+    "id": "272843213265616896",
+    "original": "Играть",
+    "text": "Грати"
+  }
+]`)
+
+	rows, err := UnmarshalRows(data)
+	if err != nil {
+		t.Fatalf("UnmarshalRows returned error: %v", err)
+	}
+	if len(rows) != 1 {
+		t.Fatalf("len(rows) = %d, want 1", len(rows))
+	}
+	if rows[0].ID != "272843213265616896" {
+		t.Fatalf("ID = %q, want large string ID", rows[0].ID)
+	}
+	if rows[0].Original != "Играть" {
+		t.Fatalf("Original = %q, want %q", rows[0].Original, "Играть")
+	}
+	if rows[0].Text != "Грати" {
+		t.Fatalf("Text = %q, want %q", rows[0].Text, "Грати")
+	}
+}
+
 func TestEnsureEditableBundleCopiesRussianBundleWhenMissing(t *testing.T) {
 	root := t.TempDir()
 	gameDir := filepath.Join(root, "Crime Scene Cleaner")

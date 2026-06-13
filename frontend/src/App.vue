@@ -1,15 +1,18 @@
 <script setup>
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import {
   ApplyTranslation,
+  ExportTranslationJSON,
   GetEditorToolingStatus,
   GetGameStatus,
+  ImportTranslationJSON,
   InstallEditorTooling,
   LoadTranslationEditor,
   SaveTranslationEditor,
 } from '../wailsjs/go/main/App'
 import { EventsOn } from '../wailsjs/runtime/runtime'
 import Button from './components/ui/button/Button.vue'
+import Input from './components/ui/input/Input.vue'
 import Select from './components/ui/select/Select.vue'
 import SelectContent from './components/ui/select/SelectContent.vue'
 import SelectItem from './components/ui/select/SelectItem.vue'
@@ -29,7 +32,12 @@ const view = ref('main')
 const showEditorButton = ref(false)
 const editorLoading = ref(false)
 const editorSaving = ref(false)
+const editorImporting = ref(false)
+const editorExporting = ref(false)
 const editorRows = ref([])
+const editorSearch = ref('')
+const currentPage = ref(1)
+const rowsPerPage = ref('50')
 const editorProgress = ref({ stage: '', percent: 0, message: '' })
 const status = ref({
   game: {
@@ -63,6 +71,29 @@ const canApply = computed(() => {
 })
 
 const editorBusy = computed(() => editorLoading.value || editorSaving.value)
+const editorActionBusy = computed(() => editorBusy.value || editorImporting.value || editorExporting.value)
+const rowsPerPageOptions = ['25', '50', '100', '200']
+
+const filteredEditorRows = computed(() => {
+  const query = editorSearch.value.trim().toLowerCase()
+  if (!query) return editorRows.value
+
+  return editorRows.value.filter((row) => {
+    const original = String(row.original || '').toLowerCase()
+    const text = String(row.text || '').toLowerCase()
+    return original.includes(query) || text.includes(query)
+  })
+})
+
+const totalPages = computed(() => {
+  return Math.max(1, Math.ceil(filteredEditorRows.value.length / Number(rowsPerPage.value)))
+})
+
+const pagedEditorRows = computed(() => {
+  const size = Number(rowsPerPage.value)
+  const start = (currentPage.value - 1) * size
+  return filteredEditorRows.value.slice(start, start + size)
+})
 
 async function refreshStatus() {
   loading.value = true
@@ -148,6 +179,7 @@ async function openEditor() {
 async function loadEditorRows() {
   editorLoading.value = true
   editorRows.value = []
+  currentPage.value = 1
   editorProgress.value = { stage: 'load', percent: 0, message: 'Готуємо bundle' }
   try {
     const data = await LoadTranslationEditor()
@@ -157,6 +189,49 @@ async function loadEditorRows() {
     error.value = formatError(err)
   } finally {
     editorLoading.value = false
+  }
+}
+
+async function exportEditorRows() {
+  if (!isWailsRuntime()) {
+    error.value = 'Експорт JSON доступний тільки у desktop-збірці'
+    return
+  }
+  editorExporting.value = true
+  notice.value = ''
+  error.value = ''
+  try {
+    const path = await ExportTranslationJSON(editorRows.value)
+    if (path) {
+      notice.value = `JSON експортовано: ${path}`
+    }
+  } catch (err) {
+    error.value = formatError(err)
+  } finally {
+    editorExporting.value = false
+  }
+}
+
+async function importEditorRows() {
+  if (!isWailsRuntime()) {
+    error.value = 'Імпорт JSON доступний тільки у desktop-збірці'
+    return
+  }
+  editorImporting.value = true
+  notice.value = ''
+  error.value = ''
+  try {
+    const importedRows = await ImportTranslationJSON()
+    if (!importedRows?.length) {
+      return
+    }
+    editorRows.value = mergeImportedRows(importedRows)
+    currentPage.value = 1
+    notice.value = `Імпортовано рядків: ${editorRows.value.length}`
+  } catch (err) {
+    error.value = formatError(err)
+  } finally {
+    editorImporting.value = false
   }
 }
 
@@ -175,12 +250,38 @@ async function saveEditorRows() {
   }
 }
 
+function mergeImportedRows(importedRows) {
+  const existingByKey = new Map(
+    editorRows.value.map((row) => [`${row.table}:${row.id}`, row]),
+  )
+
+  return importedRows.map((row) => {
+    const existing = existingByKey.get(`${row.table}:${row.id}`)
+    return {
+      table: row.table || existing?.table || '',
+      id: row.id || existing?.id || '',
+      original: row.original || existing?.original || '',
+      text: row.text || '',
+    }
+  })
+}
+
 function backToMain() {
   notice.value = ''
   error.value = ''
   view.value = 'main'
   editorRows.value = []
+  editorSearch.value = ''
+  currentPage.value = 1
   editorProgress.value = { stage: '', percent: 0, message: '' }
+}
+
+function goToPreviousPage() {
+  currentPage.value = Math.max(1, currentPage.value - 1)
+}
+
+function goToNextPage() {
+  currentPage.value = Math.min(totalPages.value, currentPage.value + 1)
 }
 
 function formatError(err) {
@@ -188,6 +289,16 @@ function formatError(err) {
   if (typeof err === 'string') return err
   return err.message || JSON.stringify(err)
 }
+
+watch([editorSearch, rowsPerPage], () => {
+  currentPage.value = 1
+})
+
+watch(totalPages, (pageCount) => {
+  if (currentPage.value > pageCount) {
+    currentPage.value = pageCount
+  }
+})
 
 onMounted(() => {
   refreshStatus()
@@ -258,25 +369,58 @@ onUnmounted(() => {
   <main v-else class="editor-shell">
     <section class="editor-toolbar">
       <div class="editor-actions">
-        <Button type="button" :disabled="editorBusy" @click="backToMain">Назад</Button>
-        <Button type="button" :disabled="editorBusy || editorRows.length === 0" @click="saveEditorRows">
+        <Button type="button" :disabled="editorActionBusy" @click="backToMain">Назад</Button>
+        <Button type="button" :disabled="editorActionBusy || editorRows.length === 0" @click="saveEditorRows">
           {{ editorSaving ? 'Збереження...' : 'Зберегти' }}
+        </Button>
+        <Button type="button" :disabled="editorActionBusy || editorRows.length === 0" @click="exportEditorRows">
+          {{ editorExporting ? 'Експорт...' : 'Експорт JSON' }}
+        </Button>
+        <Button type="button" :disabled="editorActionBusy" @click="importEditorRows">
+          {{ editorImporting ? 'Імпорт...' : 'Імпорт JSON' }}
         </Button>
       </div>
       <div class="editor-summary">
-        <span>Рядків: {{ editorRows.length }}</span>
+        <span>Рядків: {{ filteredEditorRows.length }} / {{ editorRows.length }}</span>
         <span v-if="editorProgress.message">{{ editorProgress.message }}</span>
       </div>
     </section>
 
-    <section v-if="editorBusy" class="progress-panel">
-      <div class="progress-label">
-        <span>{{ editorProgress.message || 'Працюємо з bundle...' }}</span>
-        <span>{{ editorProgress.percent }}%</span>
+    <section class="editor-controls-panel">
+      <label class="editor-search">
+        <span>Пошук</span>
+        <Input
+          v-model="editorSearch"
+          type="search"
+          placeholder="Шукати в Original або Translation"
+          :disabled="editorActionBusy"
+        />
+      </label>
+      <div class="page-size-control">
+        <span>Рядків на сторінці</span>
+        <Select v-model="rowsPerPage" :disabled="editorActionBusy">
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem v-for="option in rowsPerPageOptions" :key="option" :value="option">
+              {{ option }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
       </div>
-      <div class="progress-track">
-        <div class="progress-value" :style="{ width: `${editorProgress.percent}%` }"></div>
-      </div>
+    </section>
+
+    <section class="progress-panel" :class="{ idle: !editorBusy }">
+      <template v-if="editorBusy">
+        <div class="progress-label">
+          <span>{{ editorProgress.message || 'Працюємо з bundle...' }}</span>
+          <span>{{ editorProgress.percent }}%</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-value" :style="{ width: `${editorProgress.percent}%` }"></div>
+        </div>
+      </template>
     </section>
 
     <section class="editor-table-panel">
@@ -290,7 +434,7 @@ onUnmounted(() => {
           </tr>
         </thead>
         <tbody>
-          <tr v-for="row in editorRows" :key="`${row.table}:${row.id}`">
+          <tr v-for="row in pagedEditorRows" :key="`${row.table}:${row.id}`">
             <td>{{ row.table }}</td>
             <td>{{ row.id }}</td>
             <td class="original-text">{{ row.original }}</td>
@@ -300,9 +444,19 @@ onUnmounted(() => {
           </tr>
         </tbody>
       </table>
-      <div v-if="!editorBusy && editorRows.length === 0" class="empty-editor">
-        Немає рядків для редагування.
+      <div v-if="!editorBusy && filteredEditorRows.length === 0" class="empty-editor">
+        {{ editorRows.length === 0 ? 'Немає рядків для редагування.' : 'Нічого не знайдено.' }}
       </div>
+    </section>
+
+    <section class="pagination-bar">
+      <Button type="button" :disabled="editorActionBusy || currentPage === 1" @click="goToPreviousPage">
+        Назад
+      </Button>
+      <span>Сторінка {{ currentPage }} / {{ totalPages }}</span>
+      <Button type="button" :disabled="editorActionBusy || currentPage === totalPages" @click="goToNextPage">
+        Далі
+      </Button>
     </section>
 
     <div v-if="notice || error" class="toast" :class="{ error: !!error }">
