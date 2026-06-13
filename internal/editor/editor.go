@@ -58,12 +58,12 @@ func RuntimeBundleToolPath(executablePath string) string {
 func CheckTooling(bundleToolPath string) ToolingStatus {
 	status := ToolingStatus{BundleToolPath: bundleToolPath}
 	if err := requireFile(bundleToolPath); err != nil {
-		status.Message = "BundleTool.exe is missing next to the app executable"
+		status.Message = "BundleTool.exe не знайдено поруч із файлом програми"
 		return status
 	}
 	status.BundleToolAvailable = true
 	status.Ready = true
-	status.Message = "Editor tooling is ready"
+	status.Message = "Інструменти редактора готові"
 	return status
 }
 
@@ -87,7 +87,7 @@ func ExportBundle(ctx context.Context, runner CommandRunner, bundleToolPath stri
 		return EditorData{}, err
 	}
 	if err := requireFile(bundleToolPath); err != nil {
-		return EditorData{}, fmt.Errorf("bundle tool is missing: %w", err)
+		return EditorData{}, fmt.Errorf("інструмент для бандлів відсутній: %w", err)
 	}
 
 	tempDir, err := os.MkdirTemp("", "crime-scene-cleaner-localization-*")
@@ -144,16 +144,16 @@ func ExportBundle(ctx context.Context, runner CommandRunner, bundleToolPath stri
 
 func ImportBundle(ctx context.Context, runner CommandRunner, bundleToolPath string, bundlePath string, rows []TranslationRow, englishTemplatePath string, polishTemplatePath string) error {
 	if err := requireFile(bundleToolPath); err != nil {
-		return fmt.Errorf("bundle tool is missing: %w", err)
+		return fmt.Errorf("інструмент для бандлів відсутній: %w", err)
 	}
 	if err := requireFile(bundlePath); err != nil {
 		return err
 	}
 	if err := requireFile(englishTemplatePath); err != nil {
-		return fmt.Errorf("english export template is missing: %w", err)
+		return fmt.Errorf("відсутній шаблон експорту англійської: %w", err)
 	}
 	if err := requireFile(polishTemplatePath); err != nil {
-		return fmt.Errorf("polish export template is missing: %w", err)
+		return fmt.Errorf("відсутній шаблон експорту польської: %w", err)
 	}
 	tempDir, err := os.MkdirTemp("", "crime-scene-cleaner-localization-save-*")
 	if err != nil {
@@ -170,7 +170,7 @@ func ImportBundle(ctx context.Context, runner CommandRunner, bundleToolPath stri
 	backupPath := bundlePath + ".editor.bak"
 	if _, err := os.Stat(backupPath); errors.Is(err, os.ErrNotExist) {
 		if err := copyFile(bundlePath, backupPath); err != nil {
-			return fmt.Errorf("create editor backup: %w", err)
+			return fmt.Errorf("створення резервної копії редактора: %w", err)
 		}
 	}
 	baseDir := filepath.Dir(bundlePath)
@@ -210,7 +210,7 @@ func EnsureEditorBundles(bundlePath string, dictionaryPath string, gameDir strin
 		return err
 	}
 	if err := requireFile(sourcePath); err != nil {
-		return fmt.Errorf("russian source bundle is missing: %w", err)
+		return fmt.Errorf("відсутній російський вихідний бандл: %w", err)
 	}
 
 	if needsEditable {
@@ -264,7 +264,7 @@ func importBundleTo(ctx context.Context, runner CommandRunner, bundleToolPath st
 		return err
 	}
 	if err := requireFile(outputTempPath); err != nil {
-		return fmt.Errorf("bundle tool did not create output bundle: %w", err)
+		return fmt.Errorf("інструмент для бандлів не створив вихідний бандл: %w", err)
 	}
 	if err := os.Remove(outputPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err

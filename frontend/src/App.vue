@@ -103,7 +103,7 @@ async function refreshStatus() {
         installed: false,
         path: '',
         version: '',
-        message: 'Запустіть desktop-збірку Wails для перевірки Steam',
+        message: 'Запустіть десктопну збірку Wails для перевірки Steam',
       },
     }
     loading.value = false
@@ -120,7 +120,7 @@ async function refreshStatus() {
 
 async function applyTranslation() {
   if (!isWailsRuntime()) {
-    error.value = 'Застосування перекладу доступне тільки у desktop-збірці'
+    error.value = 'Застосування перекладу доступне тільки у десктопній збірці'
     return
   }
   applying.value = true
@@ -141,7 +141,7 @@ async function openEditor() {
   notice.value = ''
   error.value = ''
   if (!isWailsRuntime()) {
-    error.value = 'Редактор перекладу доступний тільки у desktop-збірці'
+    error.value = 'Редактор перекладу доступний тільки у десктопній збірці'
     return
   }
 
@@ -160,7 +160,7 @@ async function loadEditorRows() {
   editorLoading.value = true
   editorRows.value = []
   currentPage.value = 1
-  editorProgress.value = { stage: 'load', percent: 0, message: 'Готуємо bundle' }
+  editorProgress.value = { stage: 'load', percent: 0, message: 'Готуємо бандл' }
   try {
     const data = await LoadTranslationEditor()
     editorRows.value = data?.rows || []
@@ -174,7 +174,7 @@ async function loadEditorRows() {
 
 async function exportEditorRows() {
   if (!isWailsRuntime()) {
-    error.value = 'Експорт JSON доступний тільки у desktop-збірці'
+    error.value = 'Експорт JSON доступний тільки у десктопній збірці'
     return
   }
   editorExporting.value = true
@@ -194,7 +194,7 @@ async function exportEditorRows() {
 
 async function importEditorRows() {
   if (!isWailsRuntime()) {
-    error.value = 'Імпорт JSON доступний тільки у desktop-збірці'
+    error.value = 'Імпорт JSON доступний тільки у десктопній збірці'
     return
   }
   editorImporting.value = true
@@ -222,7 +222,7 @@ async function saveEditorRows() {
   editorProgress.value = { stage: 'save', percent: 0, message: 'Готуємо збереження' }
   try {
     await SaveTranslationEditor(editorRows.value)
-    notice.value = 'Переклад збережено та експортовано для English/Polish'
+    notice.value = 'Переклад збережено та експортовано для англійської/польської'
   } catch (err) {
     error.value = formatError(err)
   } finally {
@@ -372,7 +372,7 @@ onUnmounted(() => {
         <Input
           v-model="editorSearch"
           type="search"
-          placeholder="Шукати в Original або Translation"
+          placeholder="Шукати в оригіналі або перекладі"
           :disabled="editorActionBusy"
         />
       </label>
@@ -394,7 +394,7 @@ onUnmounted(() => {
     <section class="progress-panel" :class="{ idle: !editorBusy }">
       <template v-if="editorBusy">
         <div class="progress-label">
-          <span>{{ editorProgress.message || 'Працюємо з bundle...' }}</span>
+          <span>{{ editorProgress.message || 'Працюємо з бандлом...' }}</span>
           <span>{{ editorProgress.percent }}%</span>
         </div>
         <div class="progress-track">
@@ -407,10 +407,10 @@ onUnmounted(() => {
       <table class="translation-table">
         <thead>
           <tr>
-            <th>Table</th>
-            <th>ID</th>
-            <th>Original</th>
-            <th>Translation</th>
+            <th>Таблиця</th>
+            <th>Ідентифікатор</th>
+            <th>Оригінал</th>
+            <th>Переклад</th>
           </tr>
         </thead>
         <tbody>

@@ -75,7 +75,7 @@ func (a *App) GetEditorToolingStatus() editor.ToolingStatus {
 }
 
 func (a *App) InstallEditorTooling() (editor.ToolingStatus, error) {
-	a.emitEditorProgress("tooling", 20, "Checking BundleTool.exe")
+	a.emitEditorProgress("tooling", 20, "Перевіряємо BundleTool.exe")
 	status := a.GetEditorToolingStatus()
 	a.emitEditorProgress("tooling", 100, status.Message)
 	return status, nil
@@ -90,34 +90,34 @@ func (a *App) LoadTranslationEditor() (editor.EditorData, error) {
 	dictionaryPath := editor.DictionaryBundlePath(bundlePath)
 	bundleToolPath := editor.RuntimeBundleToolPath(executable)
 
-	a.emitEditorProgress("load", 10, "Checking editor tooling")
+	a.emitEditorProgress("load", 10, "Перевіряємо інструменти редактора")
 	status := editor.CheckTooling(bundleToolPath)
 	if !status.Ready {
 		a.emitEditorProgress("load", 100, status.Message)
 		return editor.EditorData{}, os.ErrNotExist
 	}
-	a.emitEditorProgress("load", 25, "Preparing editable translation bundle")
+	a.emitEditorProgress("load", 25, "Готуємо редагований бандл перекладу")
 	info, err := steam.DetectGame()
 	if err != nil {
-		a.emitEditorProgress("load", 100, "Failed to detect game")
+		a.emitEditorProgress("load", 100, "Не вдалося перевірити гру")
 		return editor.EditorData{}, err
 	}
 	if !info.Installed {
-		a.emitEditorProgress("load", 100, "Game was not found")
+		a.emitEditorProgress("load", 100, "Гру не знайдено")
 		return editor.EditorData{}, os.ErrNotExist
 	}
 	if err := editor.EnsureEditorBundles(bundlePath, dictionaryPath, info.Path); err != nil {
-		a.emitEditorProgress("load", 100, "Failed to prepare editable bundle")
+		a.emitEditorProgress("load", 100, "Не вдалося підготувати редагований бандл")
 		return editor.EditorData{}, err
 	}
 
-	a.emitEditorProgress("load", 45, "Unpacking ukrainian-localization.bundle")
+	a.emitEditorProgress("load", 45, "Розпаковуємо ukrainian-localization.bundle")
 	data, err := editor.ExportBundle(context.Background(), editor.ExecRunner{}, bundleToolPath, bundlePath, dictionaryPath)
 	if err != nil {
-		a.emitEditorProgress("load", 100, "Failed to read translation bundle")
+		a.emitEditorProgress("load", 100, "Не вдалося прочитати бандл перекладу")
 		return editor.EditorData{}, err
 	}
-	a.emitEditorProgress("load", 100, "Translation table loaded")
+	a.emitEditorProgress("load", 100, "Таблицю перекладу завантажено")
 	return data, nil
 }
 
@@ -129,7 +129,7 @@ func (a *App) SaveTranslationEditor(rows []editor.TranslationRow) error {
 	bundlePath := patcher.RuntimeBundlePath(executable)
 	bundleToolPath := editor.RuntimeBundleToolPath(executable)
 
-	a.emitEditorProgress("save", 10, "Checking editor tooling")
+	a.emitEditorProgress("save", 10, "Перевіряємо інструменти редактора")
 	status := editor.CheckTooling(bundleToolPath)
 	if !status.Ready {
 		a.emitEditorProgress("save", 100, status.Message)
@@ -137,11 +137,11 @@ func (a *App) SaveTranslationEditor(rows []editor.TranslationRow) error {
 	}
 	info, err := steam.DetectGame()
 	if err != nil {
-		a.emitEditorProgress("save", 100, "Failed to detect game")
+		a.emitEditorProgress("save", 100, "Не вдалося перевірити гру")
 		return err
 	}
 	if !info.Installed {
-		a.emitEditorProgress("save", 100, "Game was not found")
+		a.emitEditorProgress("save", 100, "Гру не знайдено")
 		return os.ErrNotExist
 	}
 	englishTemplate, err := patcher.TargetBundlePath(info.Path, patcher.TargetEnglish)
@@ -152,21 +152,21 @@ func (a *App) SaveTranslationEditor(rows []editor.TranslationRow) error {
 	if err != nil {
 		return err
 	}
-	a.emitEditorProgress("save", 35, "Packing translations into bundle")
+	a.emitEditorProgress("save", 35, "Запаковуємо переклад у бандл")
 	if err := editor.ImportBundle(context.Background(), editor.ExecRunner{}, bundleToolPath, bundlePath, rows, englishTemplate, polishTemplate); err != nil {
-		a.emitEditorProgress("save", 100, "Failed to save translation bundle")
+		a.emitEditorProgress("save", 100, "Не вдалося зберегти бандл перекладу")
 		return err
 	}
-	a.emitEditorProgress("save", 100, "Translation bundle saved")
+	a.emitEditorProgress("save", 100, "Бандл перекладу збережено")
 	return nil
 }
 
 func (a *App) ExportTranslationJSON(rows []editor.TranslationRow) (string, error) {
 	path, err := runtime.SaveFileDialog(a.ctx, runtime.SaveDialogOptions{
-		Title:           "Export translation JSON",
+		Title:           "Експорт перекладу в JSON",
 		DefaultFilename: "ukrainian-localization.json",
 		Filters: []runtime.FileFilter{{
-			DisplayName: "JSON files (*.json)",
+			DisplayName: "Файли JSON (*.json)",
 			Pattern:     "*.json",
 		}},
 		CanCreateDirectories: true,
@@ -186,9 +186,9 @@ func (a *App) ExportTranslationJSON(rows []editor.TranslationRow) (string, error
 
 func (a *App) ImportTranslationJSON() ([]editor.TranslationRow, error) {
 	path, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
-		Title: "Import translation JSON",
+		Title: "Імпорт перекладу з JSON",
 		Filters: []runtime.FileFilter{{
-			DisplayName: "JSON files (*.json)",
+			DisplayName: "Файли JSON (*.json)",
 			Pattern:     "*.json",
 		}},
 	})

@@ -73,11 +73,11 @@ func FindGameInLibraries(libraries []string) (GameInfo, error) {
 				Installed: true,
 				Path:      gamePath,
 				Version:   values["buildid"],
-				Message:   "Game detected",
+				Message:   "Гру знайдено",
 			}, nil
 		}
 	}
-	return GameInfo{Installed: false, Message: "Crime Scene Cleaner was not found in local Steam libraries"}, nil
+	return GameInfo{Installed: false, Message: "Crime Scene Cleaner не знайдено в локальних бібліотеках Steam"}, nil
 }
 
 func DetectGame() (GameInfo, error) {
@@ -87,7 +87,7 @@ func DetectGame() (GameInfo, error) {
 	}
 	libraries, err := ReadLibraryFolders(steamRoot)
 	if err != nil {
-		return GameInfo{Installed: false, Message: "Steam library configuration was not found"}, nil
+		return GameInfo{Installed: false, Message: "Конфігурацію бібліотек Steam не знайдено"}, nil
 	}
 	if !containsString(libraries, steamRoot) {
 		libraries = append([]string{steamRoot}, libraries...)
@@ -97,7 +97,7 @@ func DetectGame() (GameInfo, error) {
 
 func SteamRoot() (string, error) {
 	if runtime.GOOS != "windows" {
-		return "", errors.New("Steam auto-detection is only implemented for Windows")
+		return "", errors.New("автовизначення Steam реалізовано тільки для Windows")
 	}
 
 	for _, keyName := range []string{
@@ -124,7 +124,7 @@ func SteamRoot() (string, error) {
 		}
 	}
 
-	return "", errors.New("Steam installation was not found")
+	return "", errors.New("інсталяцію Steam не знайдено")
 }
 
 func uniqueStrings(values []string) []string {

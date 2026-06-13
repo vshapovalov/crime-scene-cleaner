@@ -33,7 +33,7 @@ func TargetBundlePath(gameDir string, target TargetLanguage) (string, error) {
 	case TargetRussian:
 		fileName = "localization-string-tables-russian(ru)_assets_all.bundle"
 	default:
-		return "", fmt.Errorf("unsupported target language: %s", target)
+		return "", fmt.Errorf("непідтримувана мова для заміни: %s", target)
 	}
 
 	return filepath.Join(
@@ -52,26 +52,26 @@ func Apply(gameDir string, sourceBundle string, target TargetLanguage) (ApplyRes
 		return ApplyResult{}, err
 	}
 	if err := requireFile(sourceBundle); err != nil {
-		return ApplyResult{}, fmt.Errorf("translation bundle is missing: %w", err)
+		return ApplyResult{}, fmt.Errorf("бандл перекладу відсутній: %w", err)
 	}
 	if err := requireFile(targetPath); err != nil {
-		return ApplyResult{}, fmt.Errorf("game localization bundle is missing: %w", err)
+		return ApplyResult{}, fmt.Errorf("бандл локалізації гри відсутній: %w", err)
 	}
 
 	backupPath := targetPath + ".bak"
 	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
 		if err := copyFile(targetPath, backupPath); err != nil {
-			return ApplyResult{}, fmt.Errorf("create backup: %w", err)
+			return ApplyResult{}, fmt.Errorf("створення резервної копії: %w", err)
 		}
 	}
 	if err := copyFile(sourceBundle, targetPath); err != nil {
-		return ApplyResult{}, fmt.Errorf("install translation: %w", err)
+		return ApplyResult{}, fmt.Errorf("встановлення перекладу: %w", err)
 	}
 
 	return ApplyResult{
 		TargetPath: targetPath,
 		BackupPath: backupPath,
-		Message:    "Translation applied",
+		Message:    "Переклад застосовано",
 	}, nil
 }
 
@@ -87,7 +87,7 @@ func RuntimeBundlePathForTarget(executablePath string, target TargetLanguage) (s
 	case TargetPolish:
 		fileName = "ukrainian-localization_pl.bundle"
 	default:
-		return "", fmt.Errorf("unsupported runtime target language: %s", target)
+		return "", fmt.Errorf("непідтримувана мова перекладу під час виконання: %s", target)
 	}
 	return filepath.Join(filepath.Dir(executablePath), fileName), nil
 }
