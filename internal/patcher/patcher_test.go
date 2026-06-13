@@ -99,7 +99,7 @@ func TestTargetBundleTemplatePathFallsBackToCurrentBundle(t *testing.T) {
 
 func TestApplyCreatesBackupAndCopiesTranslation(t *testing.T) {
 	root := t.TempDir()
-	gameDir := filepath.Join(root, "Crime Scene Cleaner")
+	gameDir, catalogPath := writeTestCatalog(t, root)
 	targetDir := filepath.Join(gameDir, "CrimeCleaner_Data", "StreamingAssets", "aa", "StandaloneWindows64")
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -135,11 +135,21 @@ func TestApplyCreatesBackupAndCopiesTranslation(t *testing.T) {
 	if result.BackupPath != target+".bak" {
 		t.Fatalf("BackupPath = %q", result.BackupPath)
 	}
+	if result.CatalogPath != catalogPath {
+		t.Fatalf("CatalogPath = %q", result.CatalogPath)
+	}
+	if result.CatalogBackupPath != catalogPath+".bak" {
+		t.Fatalf("CatalogBackupPath = %q", result.CatalogBackupPath)
+	}
+	english := readCatalogOptions(t, catalogPath, testEnglishInternalID)
+	if english.CRC != 0 || english.UseCRCForCachedBundles {
+		t.Fatalf("English catalog entry was not patched: %+v", english)
+	}
 }
 
 func TestApplyDoesNotOverwriteExistingBackup(t *testing.T) {
 	root := t.TempDir()
-	gameDir := filepath.Join(root, "Crime Scene Cleaner")
+	gameDir, catalogPath := writeTestCatalog(t, root)
 	targetDir := filepath.Join(gameDir, "CrimeCleaner_Data", "StreamingAssets", "aa", "StandaloneWindows64")
 	if err := os.MkdirAll(targetDir, 0o755); err != nil {
 		t.Fatal(err)
@@ -149,6 +159,9 @@ func TestApplyDoesNotOverwriteExistingBackup(t *testing.T) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(target+".bak", []byte("first-original"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(catalogPath+".bak", []byte("first-catalog"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	source := filepath.Join(root, "ukrainian-localization.bundle")
@@ -167,5 +180,12 @@ func TestApplyDoesNotOverwriteExistingBackup(t *testing.T) {
 	}
 	if string(backup) != "first-original" {
 		t.Fatalf("backup content = %q", string(backup))
+	}
+	catalogBackup, err := os.ReadFile(catalogPath + ".bak")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(catalogBackup) != "first-catalog" {
+		t.Fatalf("catalog backup content = %q", string(catalogBackup))
 	}
 }

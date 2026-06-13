@@ -123,6 +123,8 @@ export namespace patcher {
 	export class ApplyResult {
 	    targetPath: string;
 	    backupPath: string;
+	    catalogPath: string;
+	    catalogBackupPath: string;
 	    message: string;
 	
 	    static createFrom(source: any = {}) {
@@ -133,6 +135,8 @@ export namespace patcher {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.targetPath = source["targetPath"];
 	        this.backupPath = source["backupPath"];
+	        this.catalogPath = source["catalogPath"];
+	        this.catalogBackupPath = source["catalogBackupPath"];
 	        this.message = source["message"];
 	    }
 	}

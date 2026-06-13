@@ -18,9 +18,11 @@ const (
 const RuntimeTranslationBundle = "ukrainian-localization.bundle"
 
 type ApplyResult struct {
-	TargetPath string `json:"targetPath"`
-	BackupPath string `json:"backupPath"`
-	Message    string `json:"message"`
+	TargetPath        string `json:"targetPath"`
+	BackupPath        string `json:"backupPath"`
+	CatalogPath       string `json:"catalogPath"`
+	CatalogBackupPath string `json:"catalogBackupPath"`
+	Message           string `json:"message"`
 }
 
 func TargetBundlePath(gameDir string, target TargetLanguage) (string, error) {
@@ -69,6 +71,10 @@ func Apply(gameDir string, sourceBundle string, target TargetLanguage) (ApplyRes
 	if err := requireFile(targetPath); err != nil {
 		return ApplyResult{}, fmt.Errorf("бандл локалізації гри відсутній: %w", err)
 	}
+	catalogPath := CatalogPath(gameDir)
+	if err := requireFile(catalogPath); err != nil {
+		return ApplyResult{}, fmt.Errorf("catalog.json гри відсутній: %w", err)
+	}
 
 	backupPath := targetPath + ".bak"
 	if _, err := os.Stat(backupPath); os.IsNotExist(err) {
@@ -76,14 +82,27 @@ func Apply(gameDir string, sourceBundle string, target TargetLanguage) (ApplyRes
 			return ApplyResult{}, fmt.Errorf("створення резервної копії: %w", err)
 		}
 	}
+	catalogBackupPath := catalogPath + ".bak"
+	if _, err := os.Stat(catalogBackupPath); os.IsNotExist(err) {
+		if err := copyFile(catalogPath, catalogBackupPath); err != nil {
+			return ApplyResult{}, fmt.Errorf("створення резервної копії catalog.json: %w", err)
+		}
+	}
 	if err := copyFile(sourceBundle, targetPath); err != nil {
 		return ApplyResult{}, fmt.Errorf("встановлення перекладу: %w", err)
 	}
+	if err := PatchAddressablesCatalog(gameDir, target, sourceBundle); err != nil {
+		_ = copyFile(backupPath, targetPath)
+		_ = copyFile(catalogBackupPath, catalogPath)
+		return ApplyResult{}, fmt.Errorf("оновлення catalog.json: %w", err)
+	}
 
 	return ApplyResult{
-		TargetPath: targetPath,
-		BackupPath: backupPath,
-		Message:    "Переклад застосовано",
+		TargetPath:        targetPath,
+		BackupPath:        backupPath,
+		CatalogPath:       catalogPath,
+		CatalogBackupPath: catalogBackupPath,
+		Message:           "Переклад застосовано",
 	}, nil
 }
 
